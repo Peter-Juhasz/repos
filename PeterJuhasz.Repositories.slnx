@@ -4,6 +4,7 @@
   </Folder>
   <Project Path="src/PeterJuhasz.Repositories.Abstractions/PeterJuhasz.Repositories.Abstractions.csproj" />
   <Project Path="src/PeterJuhasz.Repositories.AzureStorage/PeterJuhasz.Repositories.AzureStorage.csproj" Id="21d39473-777b-4215-bc45-9d629e74ab4a" />
+  <Project Path="src/PeterJuhasz.Repositories.FileSystem/PeterJuhasz.Repositories.FileSystem.csproj" />
   <Project Path="src/PeterJuhasz.Repositories.InMemory/PeterJuhasz.Repositories.InMemory.csproj" />
   <Project Path="tests/PeterJuhasz.Repositories.Tests/PeterJuhasz.Repositories.Tests.csproj" />
 </Solution>

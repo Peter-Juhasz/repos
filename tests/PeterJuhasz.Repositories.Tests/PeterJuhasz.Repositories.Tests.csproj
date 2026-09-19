@@ -21,6 +21,8 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\PeterJuhasz.Repositories.Abstractions\PeterJuhasz.Repositories.Abstractions.csproj" />
+		<ProjectReference Include="..\..\src\PeterJuhasz.Repositories.AzureStorage\PeterJuhasz.Repositories.AzureStorage.csproj" />
+		<ProjectReference Include="..\..\src\PeterJuhasz.Repositories.FileSystem\PeterJuhasz.Repositories.FileSystem.csproj" />
 		<ProjectReference Include="..\..\src\PeterJuhasz.Repositories.InMemory\PeterJuhasz.Repositories.InMemory.csproj" />
 	</ItemGroup>
 

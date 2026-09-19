@@ -62,6 +62,10 @@ jobs:
       working-directory: src/PeterJuhasz.Repositories.AzureStorage
       run: dotnet pack --configuration Release --version-suffix "preview.${{ github.run_number }}" -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
 
+    - name: Pack FileSystem
+      working-directory: src/PeterJuhasz.Repositories.FileSystem
+      run: dotnet pack --configuration Release --version-suffix "preview.${{ github.run_number }}" -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+
     # - name: Attest
     #   uses: actions/attest-build-provenance@v4
     #   with:

@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+		<PackageId>PeterJuhasz.Repositories.AzureStorage</PackageId>
+		<PackageTags>repositories;blobs;azure</PackageTags>
+		<PackageProjectUrl>https://github.com/Peter-Juhasz/repos</PackageProjectUrl>
+		<VersionPrefix>2.0.0</VersionPrefix>
+		<RepositoryUrl>https://github.com/Peter-Juhasz/repos</RepositoryUrl>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\PeterJuhasz.Repositories.Abstractions\PeterJuhasz.Repositories.Abstractions.csproj" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<PackageReference Include="Azure.Storage.Blobs" Version="*" />
+		<PackageReference Include="Azure.Storage.Blobs.Batch" Version="*" />
+		<PackageReference Include="Azure.Storage.Queues" Version="*" />
+		<PackageReference Include="Microsoft.Extensions.Azure" Version="*" />
+	</ItemGroup>
+
+</Project>

@@ -57,6 +57,10 @@ jobs:
     - name: Pack InMemory
       working-directory: src/PeterJuhasz.Repositories.InMemory
       run: dotnet pack --configuration Release --version-suffix "preview.${{ github.run_number }}" -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+      
+    - name: Pack AzureStorage
+      working-directory: src/PeterJuhasz.Repositories.AzureStorage
+      run: dotnet pack --configuration Release --version-suffix "preview.${{ github.run_number }}" -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
 
     # - name: Attest
     #   uses: actions/attest-build-provenance@v4

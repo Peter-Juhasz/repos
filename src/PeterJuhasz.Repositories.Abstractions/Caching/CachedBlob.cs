@@ -1,7 +1,7 @@
-﻿using PeterJuhasz.Repositories.Caching;
+﻿using PeterJuhasz.Repositories.Blobs;
 using System.Collections.Concurrent;
 
-namespace PeterJuhasz.Repositories.Blobs;
+namespace PeterJuhasz.Repositories.Caching;
 
 public sealed class CachedBlob(
 	IBlob inner,

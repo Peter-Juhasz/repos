@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="src/PeterJuhasz.Repositories.Abstractions/PeterJuhasz.Repositories.Abstractions.csproj" />
+  <Project Path="src/PeterJuhasz.Repositories.InMemory/PeterJuhasz.Repositories.InMemory.csproj" />
+  <Project Path="tests/PeterJuhasz.Repositories.Tests/PeterJuhasz.Repositories.Tests.csproj" />
+</Solution>

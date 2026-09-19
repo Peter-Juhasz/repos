@@ -9,7 +9,7 @@
 		<PackageId>PeterJuhasz.Repositories.Abstractions</PackageId>
 		<PackageTags>repositories;blobs</PackageTags>
 		<PackageProjectUrl>https://github.com/Peter-Juhasz/repos</PackageProjectUrl>
-		<VersionPrefix>2.0.0</VersionPrefix>
+		<VersionPrefix>2.1.0</VersionPrefix>
 		<RepositoryUrl>https://github.com/Peter-Juhasz/repos</RepositoryUrl>
 	</PropertyGroup>
 

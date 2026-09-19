@@ -1,6 +1,7 @@
 ﻿using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Caching;
 using PeterJuhasz.Repositories.Compression;
+using PeterJuhasz.Repositories.Locking;
 
 namespace PeterJuhasz.Repositories.Blobs;
 
@@ -73,8 +74,8 @@ public static partial class Extensions
 		public Task<BinaryData?> TransformAsync(
 			Func<BinaryData?, CancellationToken, ValueTask<BinaryData?>> transform,
 			CancellationToken cancellationToken,
-			OptimisticConcurrencyOptions? concurrencyOptions = null
-		) => OptimisticConcurrency.Retry(async ct =>
+			OptimisticConcurrency.Options? concurrencyOptions = null
+		) => OptimisticConcurrency.RetryAsync(async ct =>
 		{
 			var result = await blob.ReadAsync(ct);
 			var oldData = result?.Value;
@@ -101,7 +102,7 @@ public static partial class Extensions
 		public Task<BinaryData?> TransformAsync(
 			Func<BinaryData?, BinaryData?> transform,
 			CancellationToken cancellationToken,
-			OptimisticConcurrencyOptions? concurrencyOptions = null
+			OptimisticConcurrency.Options? concurrencyOptions = null
 		) => blob.TransformAsync((data, ct) => new(transform(data)), cancellationToken, concurrencyOptions);
 
 		public async Task CopyToAsync(IBlob other, CancellationToken cancellationToken)
@@ -139,6 +140,10 @@ public static partial class Extensions
 
 					case CachedBlob cached:
 						current = cached.Blob;
+						break;
+
+					case LockingBlob locking:
+						current = locking.Blob;
 						break;
 
 					default:

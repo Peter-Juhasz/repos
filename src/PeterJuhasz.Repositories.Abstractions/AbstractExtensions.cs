@@ -14,7 +14,7 @@ public static partial class StorageExtensions
 			ISerializer<TTo> toSerializer,
 			CancellationToken cancellationToken,
 			IEqualityComparer<TTo>? comparer = null,
-			OptimisticConcurrencyOptions? concurrencyOptions = null
+			OptimisticConcurrency.Options? concurrencyOptions = null
 		)
 			where TFrom : class, TTo
 			where TTo : class
@@ -70,7 +70,7 @@ public static partial class StorageExtensions
 			ISerializer<TTo> toSerializer,
 			CancellationToken cancellationToken,
 			IEqualityComparer<TTo>? comparer = null,
-			OptimisticConcurrencyOptions? concurrencyOptions = null
+			OptimisticConcurrency.Options? concurrencyOptions = null
 		)
 			where TFrom : class, TTo
 			where TTo : class
@@ -88,7 +88,7 @@ public static partial class StorageExtensions
 			ISerializer<T> serializer,
 			CancellationToken cancellationToken,
 			IEqualityComparer<T>? comparer = null,
-			OptimisticConcurrencyOptions? concurrencyOptions = null
+			OptimisticConcurrency.Options? concurrencyOptions = null
 		) where T : class => blob.TransformBufferedAsync<T, T>(
 			transform,
 			serializer,
@@ -103,7 +103,7 @@ public static partial class StorageExtensions
 			ISerializer<T> serializer,
 			CancellationToken cancellationToken,
 			IEqualityComparer<T>? comparer = null,
-			OptimisticConcurrencyOptions? concurrencyOptions = null
+			OptimisticConcurrency.Options? concurrencyOptions = null
 		) where T : class => blob.TransformBufferedAsync<T>(
 			(old, ct) => new ValueTask<T?>(transform(old)),
 			serializer,
@@ -119,7 +119,7 @@ public static partial class StorageExtensions
 			ISerializer<TTo> toSerializer,
 			CancellationToken cancellationToken,
 			IEqualityComparer<TTo>? comparer = null,
-			OptimisticConcurrencyOptions? concurrencyOptions = null
+			OptimisticConcurrency.Options? concurrencyOptions = null
 		)
 			where TFrom : class, TTo
 			where TTo : class
@@ -127,7 +127,7 @@ public static partial class StorageExtensions
 			comparer ??= EqualityComparer<TTo>.Default;
 			TTo? result = null;
 
-			await OptimisticConcurrency.Retry(async ct =>
+			await OptimisticConcurrency.RetryAsync(async ct =>
 			{
 				// download and deserialize the existing blob content
 				TFrom? oldObject;
@@ -180,7 +180,7 @@ public static partial class StorageExtensions
 			ISerializer<TTo> toSerializer,
 			CancellationToken cancellationToken,
 			IEqualityComparer<TTo>? comparer = null,
-			OptimisticConcurrencyOptions? concurrencyOptions = null
+			OptimisticConcurrency.Options? concurrencyOptions = null
 		)
 			where TFrom : class, TTo
 			where TTo : class => blob.TransformStreamingAsync<TFrom, TTo>(
@@ -197,7 +197,7 @@ public static partial class StorageExtensions
 			ISerializer<T> serializer,
 			CancellationToken cancellationToken,
 			IEqualityComparer<T>? comparer = null,
-			OptimisticConcurrencyOptions? concurrencyOptions = null
+			OptimisticConcurrency.Options? concurrencyOptions = null
 		) where T : class => blob.TransformStreamingAsync<T>(
 			(old, ct) => new ValueTask<T?>(transform(old)),
 			serializer,
@@ -211,7 +211,7 @@ public static partial class StorageExtensions
 			ISerializer<T> serializer,
 			CancellationToken cancellationToken,
 			IEqualityComparer<T>? comparer = null,
-			OptimisticConcurrencyOptions? concurrencyOptions = null
+			OptimisticConcurrency.Options? concurrencyOptions = null
 		) where T : class => blob.TransformStreamingAsync<T, T>(
 			transform,
 			serializer,

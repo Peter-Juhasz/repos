@@ -14,7 +14,7 @@ public class BlobObjectRepository<T>(
 	IBlob blob,
 	ISerializer<T> serializer,
 	IEqualityComparer<T>? comparer = null,
-	OptimisticConcurrencyOptions? concurrencyOptions = null
+	OptimisticConcurrency.Options? concurrencyOptions = null
 )
 	: IObjectRepository<T>
 	where T : class
@@ -75,7 +75,7 @@ public class BlobObjectRepository<T>(
 	{
 		var effectiveComparer = comparer ?? EqualityComparer<T>.Default;
 
-		return OptimisticConcurrency.Retry(async ct =>
+		return OptimisticConcurrency.RetryAsync(async ct =>
 		{
 			var result = await blob.ReadAsync(ct);
 			var oldData = result?.Value;

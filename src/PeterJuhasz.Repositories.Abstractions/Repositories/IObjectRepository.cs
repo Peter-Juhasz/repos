@@ -73,7 +73,7 @@ public interface IObjectRepository<T>
 
 	Task<RawStreamResult?> RawStreamAsync(CancellationToken cancellationToken);
 
-	Task<T?> ApplyAsync(Func<T?, CancellationToken, ValueTask<T?>> factory, CancellationToken cancellationToken) => OptimisticConcurrency.Retry(async c =>
+	Task<T?> ApplyAsync(Func<T?, CancellationToken, ValueTask<T?>> factory, CancellationToken cancellationToken) => OptimisticConcurrency.RetryAsync(async c =>
 	{
 		var versioned = await GetOrDefaultWithVersionAsync(cancellationToken);
 		var transformed = await factory(versioned.HasValue ? versioned.Value.Value : default, cancellationToken);

@@ -17,12 +17,12 @@ public class BufferedBlobCollectionRepository<T>(
 	IBlob blob,
 	ICollectionSerializer<T> serializer,
 	IEqualityComparer<T>? comparer = null,
-	OptimisticConcurrencyOptions? concurrencyOptions = null
+	OptimisticConcurrency.Options? concurrencyOptions = null
 ) : ICollectionRepository<T>
 {
 	public IBlob Blob => blob;
 
-	public Task ApplyAsync(Func<IImmutableList<T>?, CancellationToken, ValueTask<IReadOnlyCollection<T>?>> update, CancellationToken cancellationToken) => OptimisticConcurrency.Retry(async ct =>
+	public Task ApplyAsync(Func<IImmutableList<T>?, CancellationToken, ValueTask<IReadOnlyCollection<T>?>> update, CancellationToken cancellationToken) => OptimisticConcurrency.RetryAsync(async ct =>
 	{
 		var result = await blob.ReadAsync(ct);
 		var oldData = result?.Value;
@@ -118,7 +118,7 @@ public class StreamingBlobCollectionRepository<T>(
 {
 	public IBlob Blob => blob;
 
-	public Task ApplyAsync(Func<IImmutableList<T>?, CancellationToken, ValueTask<IReadOnlyCollection<T>?>> update, CancellationToken cancellationToken) => OptimisticConcurrency.Retry(async ct =>
+	public Task ApplyAsync(Func<IImmutableList<T>?, CancellationToken, ValueTask<IReadOnlyCollection<T>?>> update, CancellationToken cancellationToken) => OptimisticConcurrency.RetryAsync(async ct =>
 	{
 		// read items
 		IImmutableList<T>? oldItems = null;

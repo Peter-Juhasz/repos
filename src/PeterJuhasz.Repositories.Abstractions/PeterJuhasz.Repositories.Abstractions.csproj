@@ -11,7 +11,12 @@
 		<PackageProjectUrl>https://github.com/Peter-Juhasz/repos</PackageProjectUrl>
 		<VersionPrefix>2.1.0</VersionPrefix>
 		<RepositoryUrl>https://github.com/Peter-Juhasz/repos</RepositoryUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="$(MSBuildThisFileDirectory)..\..\README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="PeterJuhasz.Extensions" Version="2.*-*" />

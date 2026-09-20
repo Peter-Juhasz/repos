@@ -10,6 +10,7 @@ on:
       - main
     paths-ignore:
       - docs/**
+      - "**.md"
 
 jobs:
   build:

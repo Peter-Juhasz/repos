@@ -1,7 +1,7 @@
-﻿using System.Buffers;
+﻿using PeterJuhasz.Text.Separated;
+using System.Buffers;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-using System.Text.Separated;
 
 namespace PeterJuhasz.Repositories.Serialization.Separated;
 

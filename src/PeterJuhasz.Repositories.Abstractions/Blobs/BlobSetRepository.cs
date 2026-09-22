@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Separated;
+using PeterJuhasz.Text.Separated;
 
 namespace PeterJuhasz.Repositories.Blobs;
 

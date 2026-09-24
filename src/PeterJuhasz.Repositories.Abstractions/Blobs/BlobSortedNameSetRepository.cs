@@ -4,7 +4,7 @@ using PeterJuhasz.Repositories.Serialization;
 using System.Buffers;
 using System.Text;
 
-namespace App.Server.Storage.Abstractions.Repositories;
+namespace PeterJuhasz.Repositories.Blobs;
 
 public class BlobSortedNameSetRepository<T>(
 	IBlobPartition partition,

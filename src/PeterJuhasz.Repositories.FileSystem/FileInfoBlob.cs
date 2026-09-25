@@ -31,6 +31,9 @@ public sealed class FileInfoBlob(FileInfo file) : FileInfoBlobBase(file), IBlob
 
 	public async Task<string> WriteAsync(ReadOnlyMemory<byte> data, string? concurrencyToken, IBlob.WriteBlobInfo options, CancellationToken cancellationToken)
 	{
+		cancellationToken.ThrowIfCancellationRequested();
+		EnsureWriteConditionMet(concurrencyToken);
+
 		try
 		{
 			await System.IO.File.WriteAllBytesAsync(_path, data, cancellationToken);
@@ -48,6 +51,8 @@ public sealed class FileInfoBlob(FileInfo file) : FileInfoBlobBase(file), IBlob
 	public Task<Stream> OpenWriteAsync(string? concurrencyToken, IBlob.WriteBlobInfo options, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
+		EnsureWriteConditionMet(concurrencyToken);
+
 		try
 		{
 			return Task.FromResult<Stream>(new FileStream(_path, FileMode.Create, FileAccess.Write));
@@ -69,10 +74,7 @@ public sealed class FileInfoBlob(FileInfo file) : FileInfoBlobBase(file), IBlob
 		// An atomic alternative would be opening with FileMode.Open + FileOptions.DeleteOnClose, but that
 		// costs an extra open, needs read access, and on Windows leaves the file pending delete (blocking
 		// re-creation) until every other handle is closed.
-		if (!System.IO.File.Exists(_path))
-		{
-			return Task.FromException(new NotFoundException($"Blob '{Name}' not found."));
-		}
+		EnsureExistsAndMatches(concurrencyToken);
 
 		System.IO.File.Delete(_path);
 		return Task.CompletedTask;
@@ -90,6 +92,50 @@ public sealed class FileInfoBlob(FileInfo file) : FileInfoBlobBase(file), IBlob
 
 		System.IO.File.Delete(_path);
 		return SpecializedTasks.True;
+	}
+
+	// Concurrency tokens are only checked before the operation, not atomically with it, so a change
+	// made in between (e.g. by another process) goes undetected.
+
+	/// <summary>
+	/// Write precondition: <see langword="null"/> requires the blob to not exist, <see cref="IBlob.AnyOrNoneConcurrencyToken"/> is unconditional,
+	/// <see cref="IBlob.AnyConcurrencyToken"/> requires the blob to exist, any other value requires a matching token.
+	/// </summary>
+	private void EnsureWriteConditionMet(string? concurrencyToken)
+	{
+		if (concurrencyToken == IBlob.AnyOrNoneConcurrencyToken)
+		{
+			return;
+		}
+
+		var file = GetFresh();
+		var isMet = concurrencyToken switch
+		{
+			null => !file.Exists,
+			IBlob.AnyConcurrencyToken => file.Exists,
+			_ => file.Exists && GetConcurrencyToken(file) == concurrencyToken,
+		};
+		if (!isMet)
+		{
+			throw new ConflictException(concurrencyToken ?? "EXISTS");
+		}
+	}
+
+	/// <summary>
+	/// If-Match precondition: the blob must exist, and <paramref name="concurrencyToken"/> must be <see cref="IBlob.AnyConcurrencyToken"/> or match its token.
+	/// </summary>
+	private void EnsureExistsAndMatches(string concurrencyToken)
+	{
+		var file = GetFresh();
+		if (!file.Exists)
+		{
+			throw new NotFoundException($"Blob '{Name}' not found.");
+		}
+
+		if (concurrencyToken != IBlob.AnyConcurrencyToken && GetConcurrencyToken(file) != concurrencyToken)
+		{
+			throw new ConflictException(concurrencyToken);
+		}
 	}
 }
 

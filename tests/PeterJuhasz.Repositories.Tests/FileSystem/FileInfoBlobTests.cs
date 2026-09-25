@@ -19,8 +19,8 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 
 	private FileInfoBlob CreateBlob(string name = "test.bin") => new(GetFile(name));
 
-	private Task<string> WriteAsync(IBlob blob, byte[] data, IBlob.WriteBlobInfo options = default) =>
-		blob.WriteAsync(data, null, options, CT);
+	private Task<string> WriteAsync(IBlob blob, byte[] data, string? concurrencyToken, IBlob.WriteBlobInfo options = default) =>
+		blob.WriteAsync(data, concurrencyToken, options, CT);
 
 	private async Task<byte[]> ReadBytesAsync(IBlob blob)
 	{
@@ -28,6 +28,13 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 		Assert.IsNotNull(result);
 		return result.Value.ToArray();
 	}
+
+	/// <summary>
+	/// Changes the last write time of the file, invalidating previously issued concurrency tokens.
+	/// Consecutive writes may share a timestamp, so tests don't rely on them to produce a stale token.
+	/// </summary>
+	private void SimulateExternalChange(string name = "test.bin") =>
+		File.SetLastWriteTimeUtc(GetFile(name).FullName, new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc));
 
 	// Name / File
 
@@ -100,7 +107,7 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 	{
 		var blob = CreateBlob();
 
-		var token = await WriteAsync(blob, Data);
+		var token = await WriteAsync(blob, Data, null);
 
 		Assert.IsFalse(string.IsNullOrEmpty(token));
 		Assert.IsTrue(await blob.ExistsAsync(CT));
@@ -118,7 +125,7 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 	{
 		var blob = CreateBlob(Path.Combine("a", "b", "test.bin"));
 
-		await WriteAsync(blob, Data);
+		await WriteAsync(blob, Data, null);
 
 		Assert.AreSequenceEqual(Data, await ReadBytesAsync(blob));
 	}
@@ -129,30 +136,8 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 		var blob = CreateBlob();
 		var buffer = Data.ToArray();
 
-		await WriteAsync(blob, buffer);
+		await WriteAsync(blob, buffer, null);
 		buffer[0] = 99;
-
-		Assert.AreSequenceEqual(Data, await ReadBytesAsync(blob));
-	}
-
-	[TestMethod]
-	public async Task WriteAsync_WhenExists_Overwrites()
-	{
-		var blob = CreateBlob();
-		await WriteAsync(blob, Data);
-
-		await WriteAsync(blob, OtherData);
-
-		Assert.AreSequenceEqual(OtherData, await ReadBytesAsync(blob));
-	}
-
-	[TestMethod]
-	public async Task WriteAsync_WhenExists_WithShorterData_Truncates()
-	{
-		var blob = CreateBlob();
-		await WriteAsync(blob, OtherData);
-
-		await WriteAsync(blob, Data);
 
 		Assert.AreSequenceEqual(Data, await ReadBytesAsync(blob));
 	}
@@ -162,10 +147,110 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 	{
 		var blob = CreateBlob();
 
-		await WriteAsync(blob, []);
+		await WriteAsync(blob, [], null);
 
 		Assert.IsTrue(await blob.ExistsAsync(CT));
 		Assert.IsEmpty(await ReadBytesAsync(blob));
+	}
+
+	[TestMethod]
+	public async Task WriteAsync_Create_WhenExists_Throws()
+	{
+		var blob = CreateBlob();
+		await WriteAsync(blob, Data, null);
+
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => WriteAsync(blob, OtherData, null));
+
+		Assert.AreSequenceEqual(Data, await ReadBytesAsync(blob));
+	}
+
+	[TestMethod]
+	public async Task WriteAsync_WithToken_WhenNotExists_Throws()
+	{
+		var blob = CreateBlob();
+
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => WriteAsync(blob, Data, "token"));
+
+		Assert.IsFalse(await blob.ExistsAsync(CT));
+	}
+
+	[TestMethod]
+	public async Task WriteAsync_WithStaleToken_Throws()
+	{
+		var blob = CreateBlob();
+		var staleToken = await WriteAsync(blob, Data, null);
+		SimulateExternalChange();
+
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => WriteAsync(blob, OtherData, staleToken));
+
+		Assert.AreSequenceEqual(Data, await ReadBytesAsync(blob));
+	}
+
+	[TestMethod]
+	public async Task WriteAsync_WithCurrentToken_Overwrites()
+	{
+		var blob = CreateBlob();
+		var token = await WriteAsync(blob, Data, null);
+
+		var newToken = await WriteAsync(blob, OtherData, token);
+
+		Assert.AreSequenceEqual(OtherData, await ReadBytesAsync(blob));
+		Assert.AreEqual(newToken, (await blob.GetInfoAsync(CT))?.ConcurrencyToken);
+	}
+
+	[TestMethod]
+	public async Task WriteAsync_WithCurrentToken_ShorterData_Truncates()
+	{
+		var blob = CreateBlob();
+		var token = await WriteAsync(blob, OtherData, null);
+
+		await WriteAsync(blob, Data, token);
+
+		Assert.AreSequenceEqual(Data, await ReadBytesAsync(blob));
+	}
+
+	[TestMethod]
+	public async Task WriteAsync_AnyOrNoneToken_WhenNotExists_Creates()
+	{
+		var blob = CreateBlob();
+
+		var token = await WriteAsync(blob, Data, IBlob.AnyOrNoneConcurrencyToken);
+
+		Assert.AreSequenceEqual(Data, await ReadBytesAsync(blob));
+		Assert.AreEqual(token, (await blob.GetInfoAsync(CT))?.ConcurrencyToken);
+	}
+
+	[TestMethod]
+	public async Task WriteAsync_AnyOrNoneToken_WhenExists_Overwrites()
+	{
+		var blob = CreateBlob();
+		await WriteAsync(blob, Data, null);
+
+		await WriteAsync(blob, OtherData, IBlob.AnyOrNoneConcurrencyToken);
+
+		Assert.AreSequenceEqual(OtherData, await ReadBytesAsync(blob));
+	}
+
+	[TestMethod]
+	public async Task WriteAsync_AnyToken_WhenNotExists_Throws()
+	{
+		var blob = CreateBlob();
+
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => WriteAsync(blob, Data, IBlob.AnyConcurrencyToken));
+
+		Assert.IsFalse(await blob.ExistsAsync(CT));
+	}
+
+	[TestMethod]
+	public async Task WriteAsync_AnyToken_WhenExists_Overwrites()
+	{
+		var blob = CreateBlob();
+		await WriteAsync(blob, Data, null);
+		SimulateExternalChange();
+
+		await WriteAsync(blob, OtherData, IBlob.AnyConcurrencyToken);
+
+		Assert.AreSequenceEqual(OtherData, await ReadBytesAsync(blob));
 	}
 
 	// ReadAsync / OpenReadAsync / GetInfoAsync
@@ -174,7 +259,7 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 	public async Task ReadAsync_ReturnsDataAndInfo()
 	{
 		var blob = CreateBlob();
-		var token = await WriteAsync(blob, Data);
+		var token = await WriteAsync(blob, Data, null);
 
 		var result = await blob.ReadAsync(CT);
 
@@ -187,7 +272,7 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 	public async Task OpenReadAsync_ReturnsStreamAndInfo()
 	{
 		var blob = CreateBlob();
-		var token = await WriteAsync(blob, Data);
+		var token = await WriteAsync(blob, Data, null);
 
 		var result = await blob.OpenReadAsync(CT);
 
@@ -203,14 +288,14 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 	public async Task GetInfoAsync_AfterExternalChange_ReturnsFreshInfo()
 	{
 		var blob = CreateBlob();
-		await WriteAsync(blob, Data);
-		var lastWrite = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+		var token = await WriteAsync(blob, Data, null);
 
-		File.SetLastWriteTimeUtc(GetFile().FullName, lastWrite);
+		SimulateExternalChange();
 
 		var info = await blob.GetInfoAsync(CT);
 		Assert.IsNotNull(info);
-		Assert.AreEqual(new DateTimeOffset(lastWrite, TimeSpan.Zero), info.LastModified);
+		Assert.AreNotEqual(token, info.ConcurrencyToken);
+		Assert.AreEqual(new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero), info.LastModified);
 	}
 
 	// SetMetadataAsync
@@ -219,7 +304,7 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 	public async Task SetMetadataAsync_ThrowsNotSupported()
 	{
 		var blob = CreateBlob();
-		var token = await WriteAsync(blob, Data);
+		var token = await WriteAsync(blob, Data, null);
 
 		await Assert.ThrowsExactlyAsync<NotSupportedException>(() => blob.SetMetadataAsync(token, new Dictionary<string, string> { ["a"] = "b" }, CT));
 
@@ -255,12 +340,45 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 	}
 
 	[TestMethod]
-	public async Task OpenWriteAsync_WhenExists_Overwrites()
+	public async Task OpenWriteAsync_Create_WhenExists_Throws()
 	{
 		var blob = CreateBlob();
-		await WriteAsync(blob, Data);
+		await WriteAsync(blob, Data, null);
 
-		await using (var stream = await blob.OpenWriteAsync(null, default, CT))
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => blob.OpenWriteAsync(null, default, CT));
+
+		Assert.AreSequenceEqual(Data, await ReadBytesAsync(blob));
+	}
+
+	[TestMethod]
+	public async Task OpenWriteAsync_WithToken_WhenNotExists_Throws()
+	{
+		var blob = CreateBlob();
+
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => blob.OpenWriteAsync("token", default, CT));
+
+		Assert.IsFalse(await blob.ExistsAsync(CT));
+	}
+
+	[TestMethod]
+	public async Task OpenWriteAsync_WithStaleToken_Throws()
+	{
+		var blob = CreateBlob();
+		var staleToken = await WriteAsync(blob, Data, null);
+		SimulateExternalChange();
+
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => blob.OpenWriteAsync(staleToken, default, CT));
+
+		Assert.AreSequenceEqual(Data, await ReadBytesAsync(blob));
+	}
+
+	[TestMethod]
+	public async Task OpenWriteAsync_WithCurrentToken_Overwrites()
+	{
+		var blob = CreateBlob();
+		var token = await WriteAsync(blob, Data, null);
+
+		await using (var stream = await blob.OpenWriteAsync(token, default, CT))
 		{
 			await stream.WriteAsync(OtherData, CT);
 		}
@@ -269,12 +387,12 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 	}
 
 	[TestMethod]
-	public async Task OpenWriteAsync_WhenExists_WithShorterData_Truncates()
+	public async Task OpenWriteAsync_WithCurrentToken_ShorterData_Truncates()
 	{
 		var blob = CreateBlob();
-		await WriteAsync(blob, OtherData);
+		var token = await WriteAsync(blob, OtherData, null);
 
-		await using (var stream = await blob.OpenWriteAsync(null, default, CT))
+		await using (var stream = await blob.OpenWriteAsync(token, default, CT))
 		{
 			await stream.WriteAsync(Data, CT);
 		}
@@ -282,13 +400,50 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 		Assert.AreSequenceEqual(Data, await ReadBytesAsync(blob));
 	}
 
+	[TestMethod]
+	public async Task OpenWriteAsync_AnyOrNoneToken_WhenNotExists_Creates()
+	{
+		var blob = CreateBlob();
+
+		await using (var stream = await blob.OpenWriteAsync(IBlob.AnyOrNoneConcurrencyToken, default, CT))
+		{
+			await stream.WriteAsync(Data, CT);
+		}
+
+		Assert.AreSequenceEqual(Data, await ReadBytesAsync(blob));
+	}
+
+	[TestMethod]
+	public async Task OpenWriteAsync_AnyToken_WhenNotExists_Throws()
+	{
+		var blob = CreateBlob();
+
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => blob.OpenWriteAsync(IBlob.AnyConcurrencyToken, default, CT));
+
+		Assert.IsFalse(await blob.ExistsAsync(CT));
+	}
+
+	[TestMethod]
+	public async Task OpenWriteAsync_AnyToken_WhenExists_Overwrites()
+	{
+		var blob = CreateBlob();
+		await WriteAsync(blob, Data, null);
+
+		await using (var stream = await blob.OpenWriteAsync(IBlob.AnyConcurrencyToken, default, CT))
+		{
+			await stream.WriteAsync(OtherData, CT);
+		}
+
+		Assert.AreSequenceEqual(OtherData, await ReadBytesAsync(blob));
+	}
+
 	// DeleteAsync
 
 	[TestMethod]
-	public async Task DeleteAsync_WhenExists_RemovesFile()
+	public async Task DeleteAsync_WithCurrentToken_RemovesFile()
 	{
 		var blob = CreateBlob();
-		var token = await WriteAsync(blob, Data);
+		var token = await WriteAsync(blob, Data, null);
 
 		await blob.DeleteAsync(token, CT);
 
@@ -304,19 +459,61 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 	{
 		var blob = CreateBlob();
 
-		await Assert.ThrowsExactlyAsync<NotFoundException>(() => blob.DeleteAsync(IBlob.AnyConcurrencyToken, CT));
+		await Assert.ThrowsExactlyAsync<NotFoundException>(() => blob.DeleteAsync("token", CT));
+	}
+
+	[TestMethod]
+	public async Task DeleteAsync_WithStaleToken_Throws()
+	{
+		var blob = CreateBlob();
+		var staleToken = await WriteAsync(blob, Data, null);
+		SimulateExternalChange();
+
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => blob.DeleteAsync(staleToken, CT));
+
+		Assert.IsTrue(await blob.ExistsAsync(CT));
 	}
 
 	[TestMethod]
 	public async Task DeleteAsync_ThenCreate_Succeeds()
 	{
 		var blob = CreateBlob();
-		var token = await WriteAsync(blob, Data);
+		var token = await WriteAsync(blob, Data, null);
 		await blob.DeleteAsync(token, CT);
 
-		await WriteAsync(blob, OtherData);
+		await WriteAsync(blob, OtherData, null);
 
 		Assert.AreSequenceEqual(OtherData, await ReadBytesAsync(blob));
+	}
+
+	[TestMethod]
+	public async Task DeleteAsync_AnyToken_WhenExists_RemovesFile()
+	{
+		var blob = CreateBlob();
+		await WriteAsync(blob, Data, null);
+
+		await blob.DeleteAsync(IBlob.AnyConcurrencyToken, CT);
+
+		Assert.IsFalse(await blob.ExistsAsync(CT));
+	}
+
+	[TestMethod]
+	public async Task DeleteAsync_AnyToken_WhenNotExists_Throws()
+	{
+		var blob = CreateBlob();
+
+		await Assert.ThrowsExactlyAsync<NotFoundException>(() => blob.DeleteAsync(IBlob.AnyConcurrencyToken, CT));
+	}
+
+	[TestMethod]
+	public async Task DeleteAsync_AnyOrNoneToken_Throws()
+	{
+		var blob = CreateBlob();
+		await WriteAsync(blob, Data, null);
+
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => blob.DeleteAsync(IBlob.AnyOrNoneConcurrencyToken, CT));
+
+		Assert.IsTrue(await blob.ExistsAsync(CT));
 	}
 
 	// DeleteIfExistsAsync
@@ -341,7 +538,7 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 	public async Task DeleteIfExistsAsync_WhenExists_RemovesAndReturnsTrue()
 	{
 		var blob = CreateBlob();
-		await WriteAsync(blob, Data);
+		await WriteAsync(blob, Data, null);
 
 		Assert.IsTrue(await blob.DeleteIfExistsAsync(CT));
 
@@ -361,6 +558,7 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 		await Assert.ThrowsAsync<OperationCanceledException>(() => blob.ExistsAsync(cts.Token));
 		await Assert.ThrowsAsync<OperationCanceledException>(() => blob.GetInfoAsync(cts.Token));
 		await Assert.ThrowsAsync<OperationCanceledException>(() => blob.WriteAsync(Data, null, default, cts.Token));
+		await Assert.ThrowsAsync<OperationCanceledException>(() => blob.OpenWriteAsync(null, default, cts.Token));
 		await Assert.ThrowsAsync<OperationCanceledException>(() => blob.DeleteIfExistsAsync(cts.Token));
 		Assert.IsFalse(GetFile().Exists);
 	}

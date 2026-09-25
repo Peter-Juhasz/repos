@@ -129,7 +129,7 @@ public sealed class InMemoryBlob(string name, TimeProvider timeProvider) : IBlob
 			throw new ConflictException(concurrencyToken);
 		}
 
-		var oldState = Interlocked.CompareExchange(ref _state, state, null);
+		var oldState = Interlocked.CompareExchange(ref _state, null, state);
 		if (!ReferenceEquals(oldState, state))
 		{
 			throw new ConflictException(concurrencyToken);

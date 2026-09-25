@@ -26,19 +26,13 @@ public abstract class FileInfoBlobBase(FileInfo file)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 
-		try
-		{
-			var file = GetFresh();
-			return Task.FromResult<IBlob.ReadBlobInfo?>(ToReadInfo(file));
-		}
-		catch (FileNotFoundException)
+		var file = GetFresh();
+		if (!file.Exists)
 		{
 			return SpecializedTasks.Null<IBlob.ReadBlobInfo>();
 		}
-		catch (DirectoryNotFoundException)
-		{
-			return SpecializedTasks.Null<IBlob.ReadBlobInfo>();
-		}
+
+		return Task.FromResult<IBlob.ReadBlobInfo?>(ToReadInfo(file));
 	}
 
 	public Task<IBlob.BlobReadStreamResult?> OpenReadAsync(CancellationToken cancellationToken)

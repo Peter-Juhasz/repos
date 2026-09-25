@@ -47,44 +47,49 @@ public sealed class FileInfoBlob(FileInfo file) : FileInfoBlobBase(file), IBlob
 
 	public Task<Stream> OpenWriteAsync(string? concurrencyToken, IBlob.WriteBlobInfo options, CancellationToken cancellationToken)
 	{
+		cancellationToken.ThrowIfCancellationRequested();
 		try
 		{
-			var info = GetFresh();
-			return Task.FromResult<Stream>(info.OpenWrite());
-
+			return Task.FromResult<Stream>(new FileStream(_path, FileMode.Create, FileAccess.Write));
 		}
 		catch (DirectoryNotFoundException)
 		{
 			Directory.CreateDirectory(System.IO.Path.GetDirectoryName(_path)!);
 
-			var info = GetFresh();
-			return Task.FromResult<Stream>(info.OpenWrite());
+			return Task.FromResult<Stream>(new FileStream(_path, FileMode.Create, FileAccess.Write));
 		}
 	}
 
 	public Task DeleteAsync(string concurrencyToken, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
-		file.Delete();
+
+		// File.Delete is a no-op for a missing file, so there is no exception to catch and translate.
+		// The check-then-delete race is accepted, as file system blobs don't support concurrency.
+		// An atomic alternative would be opening with FileMode.Open + FileOptions.DeleteOnClose, but that
+		// costs an extra open, needs read access, and on Windows leaves the file pending delete (blocking
+		// re-creation) until every other handle is closed.
+		if (!System.IO.File.Exists(_path))
+		{
+			return Task.FromException(new NotFoundException($"Blob '{Name}' not found."));
+		}
+
+		System.IO.File.Delete(_path);
 		return Task.CompletedTask;
 	}
 
 	public Task<bool> DeleteIfExistsAsync(CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
-		try
-		{
-			file.Delete();
-			return SpecializedTasks.True;
-		}
-		catch (FileNotFoundException)
+
+		// See DeleteAsync for why this checks existence up front.
+		if (!System.IO.File.Exists(_path))
 		{
 			return SpecializedTasks.False;
 		}
-		catch (DirectoryNotFoundException)
-		{
-			return SpecializedTasks.False;
-		}
+
+		System.IO.File.Delete(_path);
+		return SpecializedTasks.True;
 	}
 }
 

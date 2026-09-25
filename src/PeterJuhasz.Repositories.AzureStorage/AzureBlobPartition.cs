@@ -89,7 +89,7 @@ public static partial class Extensions
 
 		public IBlobPartition GetPartition(params ReadOnlySpan<string> segments)
 		{
-			var path = string.Join('/', segments);
+			var path = segments.IsEmpty ? null : string.Join('/', segments);
 			return new AzureBlobPartition(container, path);
 		}
 	}

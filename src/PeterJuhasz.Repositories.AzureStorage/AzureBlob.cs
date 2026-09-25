@@ -60,6 +60,10 @@ public sealed partial class AzureBlob(BlobClient blob, WriteMode writeMode = Wri
 		{
 			throw new NotFoundException("The specified blob does not exist.");
 		}
+		catch (RequestFailedException ex) when (ex.ErrorCode == BlobErrorCode.ConditionNotMet)
+		{
+			throw new ConflictException(concurrencyToken);
+		}
 	}
 
 

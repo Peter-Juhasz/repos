@@ -77,7 +77,16 @@ public sealed class AzureAppendBlob(AppendBlobClient blob, string contentType = 
 		}
 	}
 
-	public Task DeleteAsync(CancellationToken cancellationToken) => blob.DeleteAsync(cancellationToken: cancellationToken);
+	public async Task DeleteAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			await blob.DeleteIfExistsAsync(cancellationToken: cancellationToken);
+		}
+		catch (RequestFailedException ex) when (ex.ErrorCode == BlobErrorCode.ContainerNotFound)
+		{
+		}
+	}
 
 
 	private static BlobHttpHeaders GetHeaders(string contentType) => contentType switch

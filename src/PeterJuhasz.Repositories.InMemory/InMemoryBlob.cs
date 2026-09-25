@@ -1,4 +1,4 @@
-﻿using PeterJuhasz.Repositories.Blobs;
+using PeterJuhasz.Repositories.Blobs;
 
 namespace PeterJuhasz.Repositories.InMemory;
 
@@ -21,28 +21,23 @@ public sealed class InMemoryBlob(string name, TimeProvider timeProvider) : IBlob
 
 	public Task<string> SetMetadataAsync(string concurrencyToken, IReadOnlyDictionary<string, string>? metadata, CancellationToken cancellationToken)
 	{
-		var capturedState = _state;
-		if (capturedState is null)
+		while (true)
 		{
-			throw new NotFoundException($"Blob '{Name}' not found.");
-		}
-		if (capturedState.ConcurrencyToken != concurrencyToken)
-		{
-			throw new ConflictException(concurrencyToken);
-		}
-		var newState = capturedState with
-		{
-			WriteInfo = (capturedState.WriteInfo ?? new()) with
+			var capturedState = GetExistingMatchingState(concurrencyToken);
+			var newState = capturedState with
 			{
-				Metadata = metadata,
+				ConcurrencyToken = NewConcurrencyToken(),
+				LastModified = timeProvider.GetUtcNow(),
+				WriteInfo = (capturedState.WriteInfo ?? new()) with
+				{
+					Metadata = metadata,
+				}
+			};
+			if (ReferenceEquals(Interlocked.CompareExchange(ref _state, newState, capturedState), capturedState))
+			{
+				return Task.FromResult(newState.ConcurrencyToken);
 			}
-		};
-		var oldState = Interlocked.CompareExchange(ref _state, newState, capturedState);
-		if (!ReferenceEquals(oldState, capturedState))
-		{
-			throw new ConflictException(concurrencyToken);
 		}
-		return Task.FromResult(newState.ConcurrencyToken);
 	}
 
 	public Task<bool> ExistsAsync(CancellationToken cancellationToken)
@@ -76,72 +71,91 @@ public sealed class InMemoryBlob(string name, TimeProvider timeProvider) : IBlob
 
 	public Task<string> WriteAsync(ReadOnlyMemory<byte> data, string? concurrencyToken, IBlob.WriteBlobInfo options, CancellationToken cancellationToken)
 	{
-		var capturedState = _state;
-		if (capturedState != null)
-		{
-			if (capturedState.ConcurrencyToken != concurrencyToken)
-			{
-				throw new ConflictException(concurrencyToken ?? "EXISTS");
-			}
-		}
-		else if (concurrencyToken != null)
-		{
-			throw new ConflictException(concurrencyToken);
-		}
-
-		var newState = new BlobState(new BinaryData(data.ToArray()), Guid.NewGuid().ToString(), timeProvider.GetUtcNow(), options);
-		var oldState = Interlocked.CompareExchange(ref _state, newState, capturedState);
-		if (!ReferenceEquals(oldState, capturedState))
-		{
-			throw new ConflictException(concurrencyToken ?? "EXISTS");
-		}
-
+		var newState = CreateState(data.ToArray(), options);
+		Replace(concurrencyToken, newState);
 		return Task.FromResult(newState.ConcurrencyToken);
 	}
 
 	public Task<Stream> OpenWriteAsync(string? concurrencyToken, IBlob.WriteBlobInfo options, CancellationToken cancellationToken)
 	{
-		var capturedState = _state;
-		if (capturedState != null)
-		{
-			if (capturedState.ConcurrencyToken != concurrencyToken)
-			{
-				throw new ConflictException(concurrencyToken ?? "EXISTS");
-			}
-		}
-		else if (concurrencyToken != null)
-		{
-			throw new ConflictException(concurrencyToken);
-		}
-
-		return Task.FromResult<Stream>(new WriteStream(this, options, capturedState, timeProvider));
+		EnsureWriteConditionMet(_state, concurrencyToken);
+		return Task.FromResult<Stream>(new WriteStream(this, concurrencyToken, options));
 	}
 
 	public Task DeleteAsync(string concurrencyToken, CancellationToken cancellationToken)
 	{
-		if (_state is not { } state)
+		while (true)
 		{
-			throw new NotFoundException($"Blob '{Name}' not found.");
+			var capturedState = GetExistingMatchingState(concurrencyToken);
+			if (ReferenceEquals(Interlocked.CompareExchange(ref _state, null, capturedState), capturedState))
+			{
+				return Task.CompletedTask;
+			}
 		}
-
-		if (state.ConcurrencyToken != concurrencyToken)
-		{
-			throw new ConflictException(concurrencyToken);
-		}
-
-		var oldState = Interlocked.CompareExchange(ref _state, null, state);
-		if (!ReferenceEquals(oldState, state))
-		{
-			throw new ConflictException(concurrencyToken);
-		}
-
-		return Task.CompletedTask;
 	}
 
 	public Task<bool> DeleteIfExistsAsync(CancellationToken cancellationToken)
 	{
 		var oldState = Interlocked.Exchange(ref _state, null);
 		return oldState is not null ? SpecializedTasks.True : SpecializedTasks.False;
+	}
+
+	private BlobState CreateState(byte[] data, IBlob.WriteBlobInfo options) =>
+		new(new BinaryData(data, options.MediaType), NewConcurrencyToken(), timeProvider.GetUtcNow(), options);
+
+	private static string NewConcurrencyToken() => Guid.NewGuid().ToString();
+
+	/// <summary>
+	/// Write precondition: <see langword="null"/> requires the blob to not exist, <see cref="IBlob.AnyOrNoneConcurrencyToken"/> is unconditional,
+	/// <see cref="IBlob.AnyConcurrencyToken"/> requires the blob to exist, any other value requires a matching token.
+	/// </summary>
+	private static void EnsureWriteConditionMet(BlobState? state, string? concurrencyToken)
+	{
+		var isMet = concurrencyToken switch
+		{
+			null => state is null,
+			IBlob.AnyOrNoneConcurrencyToken => true,
+			IBlob.AnyConcurrencyToken => state is not null,
+			_ => state?.ConcurrencyToken == concurrencyToken,
+		};
+		if (!isMet)
+		{
+			throw new ConflictException(concurrencyToken ?? "EXISTS");
+		}
+	}
+
+	/// <summary>
+	/// Atomically replaces the state if the write precondition is met at the time of the swap.
+	/// </summary>
+	private void Replace(string? concurrencyToken, BlobState newState)
+	{
+		while (true)
+		{
+			var capturedState = _state;
+			EnsureWriteConditionMet(capturedState, concurrencyToken);
+			if (ReferenceEquals(Interlocked.CompareExchange(ref _state, newState, capturedState), capturedState))
+			{
+				return;
+			}
+		}
+	}
+
+	/// <summary>
+	/// If-Match precondition: the blob must exist, and <paramref name="concurrencyToken"/> must be <see cref="IBlob.AnyConcurrencyToken"/> or match its token.
+	/// </summary>
+	private BlobState GetExistingMatchingState(string concurrencyToken)
+	{
+		if (_state is not { } state)
+		{
+			throw new NotFoundException($"Blob '{Name}' not found.");
+		}
+
+		if (concurrencyToken != IBlob.AnyConcurrencyToken && state.ConcurrencyToken != concurrencyToken)
+		{
+			throw new ConflictException(concurrencyToken);
+		}
+
+		return state;
 	}
 
 	private sealed record BlobState(BinaryData Data, string ConcurrencyToken, DateTimeOffset LastModified, IBlob.WriteBlobInfo? WriteInfo)
@@ -155,7 +169,7 @@ public sealed class InMemoryBlob(string name, TimeProvider timeProvider) : IBlob
 		);
 	}
 
-	private sealed class WriteStream(InMemoryBlob blob, IBlob.WriteBlobInfo options, BlobState? capturedState, TimeProvider timeProvider) : MemoryStream
+	private sealed class WriteStream(InMemoryBlob blob, string? concurrencyToken, IBlob.WriteBlobInfo options) : MemoryStream
 	{
 		private bool _committed;
 
@@ -184,12 +198,7 @@ public sealed class InMemoryBlob(string name, TimeProvider timeProvider) : IBlob
 
 			_committed = true;
 
-			var newState = new BlobState(new BinaryData(ToArray()), Guid.NewGuid().ToString(), timeProvider.GetUtcNow(), options);
-			var oldState = Interlocked.CompareExchange(ref blob._state, newState, capturedState);
-			if (!ReferenceEquals(oldState, capturedState))
-			{
-				throw new ConflictException(capturedState?.ConcurrencyToken ?? "EXISTS");
-			}
+			blob.Replace(concurrencyToken, blob.CreateState(ToArray(), options));
 		}
 	}
 }

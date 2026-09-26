@@ -9,7 +9,9 @@ public sealed class BrotliCompressor(BrotliCompressionOptions options) : ICompre
 
 	public string ContentEncoding { get; } = "br";
 
-	public Stream Compress(Stream input) => new BrotliStream(input, CompressionLevel.SmallestSize, leaveOpen: false);
+	private readonly System.IO.Compression.BrotliCompressionOptions _streamOptions = new() { Quality = options.Quality };
+
+	public Stream Compress(Stream input) => new BrotliStream(input, _streamOptions, leaveOpen: false);
 
 	public bool Compress(ReadOnlySpan<byte> input, Span<byte> output, out int written) => BrotliEncoder.TryCompress(input, output, out written, options.Quality, options.Window);
 

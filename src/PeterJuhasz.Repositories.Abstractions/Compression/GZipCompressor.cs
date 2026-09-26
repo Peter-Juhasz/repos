@@ -15,20 +15,21 @@ public sealed class GZipCompressor(GZipCompressionOptions options) : ICompressor
 	public bool Compress(ReadOnlySpan<byte> input, Span<byte> output, out int written)
 	{
 		using var _ = MemoryStreamPool.GetPooledObject(out var buffer);
-		using var gzipStream = new GZipStream(buffer, _options, leaveOpen: true);
-		gzipStream.Write(input);
-		gzipStream.Flush();
-		buffer.Flush();
-		written = (int)buffer.Position;
-		if (buffer.TryGetBuffer(out var data))
+
+		// the gzip trailer is only written when the stream is disposed
+		using (var gzipStream = new GZipStream(buffer, _options, leaveOpen: true))
 		{
-			data.CopyTo(output);
+			gzipStream.Write(input);
 		}
-		else
+
+		var compressed = buffer.TryGetBuffer(out var data) ? data.AsSpan() : buffer.ToArray();
+		if (!compressed.TryCopyTo(output))
 		{
-			var array = buffer.ToArray();
-			array.AsSpan().CopyTo(output);
+			written = 0;
+			return false;
 		}
+
+		written = compressed.Length;
 		return true;
 	}
 
@@ -37,20 +38,36 @@ public sealed class GZipCompressor(GZipCompressionOptions options) : ICompressor
 	public bool Decompress(ReadOnlySpan<byte> input, Span<byte> output, out int written)
 	{
 		using var _ = MemoryStreamPool.GetPooledObject(out var buffer);
-		using var gzipStream = new GZipStream(buffer, CompressionMode.Decompress, leaveOpen: true);
-		gzipStream.Write(input);
-		gzipStream.Flush();
-		buffer.Flush();
-		written = (int)buffer.Position;
-		if (buffer.TryGetBuffer(out var data))
+		buffer.Write(input);
+		buffer.Position = 0;
+
+		try
 		{
-			data.CopyTo(output);
+			using var gzipStream = new GZipStream(buffer, CompressionMode.Decompress, leaveOpen: true);
+			written = 0;
+			while (written < output.Length)
+			{
+				var read = gzipStream.Read(output[written..]);
+				if (read == 0)
+				{
+					return true;
+				}
+				written += read;
+			}
+
+			// output is full, succeed only if there is nothing left to decompress
+			if (gzipStream.ReadByte() != -1)
+			{
+				written = 0;
+				return false;
+			}
+
+			return true;
 		}
-		else
+		catch (InvalidDataException)
 		{
-			var array = buffer.ToArray();
-			array.AsSpan().CopyTo(output);
+			written = 0;
+			return false;
 		}
-		return true;
 	}
 }

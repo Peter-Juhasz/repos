@@ -142,11 +142,17 @@ public sealed class InMemoryBlob(string name, TimeProvider timeProvider) : IBlob
 
 	/// <summary>
 	/// If-Match precondition: the blob must exist, and <paramref name="concurrencyToken"/> must be <see cref="IBlob.AnyConcurrencyToken"/> or match its token.
+	/// A specific token on a missing blob is a conflict (the version it refers to is gone), so optimistic retries can recover.
 	/// </summary>
 	private BlobState GetExistingMatchingState(string concurrencyToken)
 	{
 		if (_state is not { } state)
 		{
+			if (concurrencyToken != IBlob.AnyConcurrencyToken)
+			{
+				throw new ConflictException(concurrencyToken);
+			}
+
 			throw new NotFoundException($"Blob '{Name}' not found.");
 		}
 

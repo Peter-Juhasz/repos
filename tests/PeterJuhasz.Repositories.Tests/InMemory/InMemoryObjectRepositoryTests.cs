@@ -246,11 +246,19 @@ public class InMemoryObjectRepositoryTests(TestContext testContext)
 	}
 
 	[TestMethod]
-	public async Task DeleteWithVersionAsync_WhenNotExists_Throws()
+	public async Task DeleteWithVersionAsync_WhenNotExists_ThrowsConflict()
 	{
 		var repository = CreateRepository();
 
-		await Assert.ThrowsExactlyAsync<NotFoundException>(() => repository.DeleteWithVersionAsync("version", CT));
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => repository.DeleteWithVersionAsync("version", CT));
+	}
+
+	[TestMethod]
+	public async Task DeleteWithVersionAsync_AnyVersion_WhenNotExists_ThrowsNotFound()
+	{
+		var repository = CreateRepository();
+
+		await Assert.ThrowsExactlyAsync<NotFoundException>(() => repository.DeleteWithVersionAsync(IBlob.AnyConcurrencyToken, CT));
 	}
 
 	[TestMethod]
@@ -260,7 +268,7 @@ public class InMemoryObjectRepositoryTests(TestContext testContext)
 		var created = await repository.CreateAsync(Value, CT);
 		await repository.DeleteWithVersionAsync(created.ETag, CT);
 
-		await Assert.ThrowsExactlyAsync<NotFoundException>(() => repository.DeleteWithVersionAsync(created.ETag, CT));
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => repository.DeleteWithVersionAsync(created.ETag, CT));
 		await Assert.ThrowsExactlyAsync<ConflictException>(() => repository.UpdateAsync(Value, created.ETag, CT));
 	}
 

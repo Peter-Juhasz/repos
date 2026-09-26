@@ -409,11 +409,19 @@ public class BlobBinaryRepositoryTests(TestContext testContext)
 	}
 
 	[TestMethod]
-	public async Task DeleteAsync_WhenNotExists_Throws()
+	public async Task DeleteAsync_WhenNotExists_ThrowsConflict()
 	{
 		var repository = CreateRepository();
 
-		await Assert.ThrowsExactlyAsync<NotFoundException>(() => repository.DeleteAsync("version", CT));
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => repository.DeleteAsync("version", CT));
+	}
+
+	[TestMethod]
+	public async Task DeleteAsync_AnyVersion_WhenNotExists_ThrowsNotFound()
+	{
+		var repository = CreateRepository();
+
+		await Assert.ThrowsExactlyAsync<NotFoundException>(() => repository.DeleteAsync(IBlob.AnyConcurrencyToken, CT));
 	}
 
 	[TestMethod]

@@ -58,16 +58,10 @@ public sealed partial class AzureBlob(BlobClient blob, WriteMode writeMode = Wri
 			ex.ErrorCode == BlobErrorCode.BlobNotFound
 		)
 		{
-			throw new NotFoundException("The specified blob does not exist.");
+			throw NotFoundOrConflict(concurrencyToken);
 		}
 		catch (RequestFailedException ex) when (ex.ErrorCode == BlobErrorCode.ConditionNotMet)
 		{
-			// a specific ETag condition fails with 412 even when the blob does not exist
-			if (!await ExistsAsync(cancellationToken))
-			{
-				throw new NotFoundException("The specified blob does not exist.");
-			}
-
 			throw new ConflictException(concurrencyToken);
 		}
 	}
@@ -297,19 +291,22 @@ public sealed partial class AzureBlob(BlobClient blob, WriteMode writeMode = Wri
 			ex.ErrorCode == BlobErrorCode.BlobNotFound
 		)
 		{
-			throw new NotFoundException("The specified blob does not exist.");
+			throw NotFoundOrConflict(concurrencyToken);
 		}
 		catch (RequestFailedException ex) when (ex.ErrorCode == BlobErrorCode.ConditionNotMet)
 		{
-			// a specific ETag condition fails with 412 even when the blob does not exist
-			if (!await ExistsAsync(cancellationToken))
-			{
-				throw new NotFoundException("The specified blob does not exist.");
-			}
-
 			throw new ConflictException(concurrencyToken);
 		}
 	}
+
+
+	/// <summary>
+	/// A specific token on a missing blob is a conflict (the version it refers to is gone), so optimistic retries can recover.
+	/// Azure reports this inconsistently (412 or 404), so a 404 is only surfaced as not found for <see cref="IBlob.AnyConcurrencyToken"/>.
+	/// </summary>
+	private static Exception NotFoundOrConflict(string concurrencyToken) => concurrencyToken == IBlob.AnyConcurrencyToken
+		? new NotFoundException("The specified blob does not exist.")
+		: new ConflictException(concurrencyToken);
 
 
 	internal static IBlob.ReadBlobInfo ToBlobInfo(BlobProperties properties) => new(

@@ -319,11 +319,11 @@ public class InMemoryBlobTests(TestContext testContext)
 	// SetMetadataAsync
 
 	[TestMethod]
-	public async Task SetMetadataAsync_WhenNotExists_Throws()
+	public async Task SetMetadataAsync_WhenNotExists_ThrowsConflict()
 	{
 		var blob = CreateBlob();
 
-		await Assert.ThrowsExactlyAsync<NotFoundException>(() => blob.SetMetadataAsync("token", new Dictionary<string, string>(), CT));
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => blob.SetMetadataAsync("token", new Dictionary<string, string>(), CT));
 	}
 
 	[TestMethod]
@@ -638,11 +638,11 @@ public class InMemoryBlobTests(TestContext testContext)
 	// DeleteAsync
 
 	[TestMethod]
-	public async Task DeleteAsync_WhenNotExists_Throws()
+	public async Task DeleteAsync_WhenNotExists_ThrowsConflict()
 	{
 		var blob = CreateBlob();
 
-		await Assert.ThrowsExactlyAsync<NotFoundException>(() => blob.DeleteAsync("token", CT));
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => blob.DeleteAsync("token", CT));
 	}
 
 	[TestMethod]
@@ -690,7 +690,7 @@ public class InMemoryBlobTests(TestContext testContext)
 		var token = await WriteAsync(blob, Data, null);
 		await blob.DeleteAsync(token, CT);
 
-		await Assert.ThrowsExactlyAsync<NotFoundException>(() => blob.DeleteAsync(token, CT));
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => blob.DeleteAsync(token, CT));
 		await Assert.ThrowsExactlyAsync<ConflictException>(() => WriteAsync(blob, Data, token));
 	}
 
@@ -744,5 +744,50 @@ public class InMemoryBlobTests(TestContext testContext)
 
 		Assert.IsFalse(await blob.ExistsAsync(CT));
 		Assert.IsFalse(await blob.DeleteIfExistsAsync(CT));
+	}
+
+	// TransformAsync under concurrent delete
+
+	[TestMethod]
+	public async Task TransformAsync_DeleteWhenDeletedConcurrently_Retries()
+	{
+		var blob = CreateBlob();
+		await WriteAsync(blob, Data, null);
+		var calls = 0;
+
+		var result = await blob.TransformAsync(async (data, ct) =>
+		{
+			if (calls++ == 0)
+			{
+				await blob.DeleteIfExistsAsync(ct);
+			}
+
+			return null;
+		}, CT);
+
+		Assert.IsNull(result);
+		Assert.AreEqual(2, calls);
+		Assert.IsFalse(await blob.ExistsAsync(CT));
+	}
+
+	[TestMethod]
+	public async Task TransformAsync_UpdateWhenDeletedConcurrently_Retries()
+	{
+		var blob = CreateBlob();
+		await WriteAsync(blob, Data, null);
+		var calls = 0;
+
+		await blob.TransformAsync(async (data, ct) =>
+		{
+			if (calls++ == 0)
+			{
+				await blob.DeleteIfExistsAsync(ct);
+			}
+
+			return BinaryData.FromBytes(OtherData);
+		}, CT);
+
+		Assert.AreEqual(2, calls);
+		Assert.AreSequenceEqual(OtherData, await ReadBytesAsync(blob));
 	}
 }

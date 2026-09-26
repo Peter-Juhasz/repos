@@ -27,6 +27,12 @@ public sealed class InMemoryObjectRepository<T> : IObjectRepository<T>
 		{
 			if (_stored is not { } current)
 			{
+				// a specific version of a missing object is a conflict, so optimistic retries can recover
+				if (etag != IBlob.AnyConcurrencyToken)
+				{
+					throw new ConflictException(etag);
+				}
+
 				throw new NotFoundException("Object not found.");
 			}
 

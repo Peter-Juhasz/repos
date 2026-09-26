@@ -349,11 +349,11 @@ public class BlobObjectRepositoryTests(TestContext testContext)
 	}
 
 	[TestMethod]
-	public async Task DeleteWithVersionAsync_WhenNotExists_Throws()
+	public async Task DeleteWithVersionAsync_WhenNotExists_ThrowsConflict()
 	{
 		var repository = CreateRepository();
 
-		await Assert.ThrowsExactlyAsync<NotFoundException>(() => repository.DeleteWithVersionAsync("version", CT));
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => repository.DeleteWithVersionAsync("version", CT));
 	}
 
 	[TestMethod]

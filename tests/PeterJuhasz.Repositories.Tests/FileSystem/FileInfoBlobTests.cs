@@ -455,11 +455,11 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 	}
 
 	[TestMethod]
-	public async Task DeleteAsync_WhenNotExists_Throws()
+	public async Task DeleteAsync_WhenNotExists_ThrowsConflict()
 	{
 		var blob = CreateBlob();
 
-		await Assert.ThrowsExactlyAsync<NotFoundException>(() => blob.DeleteAsync("token", CT));
+		await Assert.ThrowsExactlyAsync<ConflictException>(() => blob.DeleteAsync("token", CT));
 	}
 
 	[TestMethod]
@@ -561,5 +561,50 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 		await Assert.ThrowsAsync<OperationCanceledException>(() => blob.OpenWriteAsync(null, default, cts.Token));
 		await Assert.ThrowsAsync<OperationCanceledException>(() => blob.DeleteIfExistsAsync(cts.Token));
 		Assert.IsFalse(GetFile().Exists);
+	}
+
+	// TransformAsync under concurrent delete
+
+	[TestMethod]
+	public async Task TransformAsync_DeleteWhenDeletedConcurrently_Retries()
+	{
+		var blob = CreateBlob();
+		await WriteAsync(blob, Data, null);
+		var calls = 0;
+
+		var result = await blob.TransformAsync(async (data, ct) =>
+		{
+			if (calls++ == 0)
+			{
+				await blob.DeleteIfExistsAsync(ct);
+			}
+
+			return null;
+		}, CT);
+
+		Assert.IsNull(result);
+		Assert.AreEqual(2, calls);
+		Assert.IsFalse(await blob.ExistsAsync(CT));
+	}
+
+	[TestMethod]
+	public async Task TransformAsync_UpdateWhenDeletedConcurrently_Retries()
+	{
+		var blob = CreateBlob();
+		await WriteAsync(blob, Data, null);
+		var calls = 0;
+
+		await blob.TransformAsync(async (data, ct) =>
+		{
+			if (calls++ == 0)
+			{
+				await blob.DeleteIfExistsAsync(ct);
+			}
+
+			return BinaryData.FromBytes(OtherData);
+		}, CT);
+
+		Assert.AreEqual(2, calls);
+		Assert.AreSequenceEqual(OtherData, await ReadBytesAsync(blob));
 	}
 }

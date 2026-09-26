@@ -37,12 +37,8 @@ public sealed class BlobNameOneToManyForeignKeyIndex(
 	{
 		await foreach (var blob in partition.GetSubPartition(principalKey).GetBlobs(cancellationToken))
 		{
+			// blob names may include the partition path
 			var lastSlash = blob.Name.LastIndexOf('/');
-			if (lastSlash != -1)
-			{
-				throw new InvalidOperationException($"Blob name '{blob.Name}' contains a slash, which is not allowed in this index.");
-			}
-
 			var foreignKey = blob.Name[(lastSlash + 1)..];
 			yield return foreignKey;
 		}

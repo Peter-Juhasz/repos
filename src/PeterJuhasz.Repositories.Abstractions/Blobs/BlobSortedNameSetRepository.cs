@@ -29,7 +29,7 @@ public class BlobSortedNameSetRepository<T>(
 		var span = writer.GetSpan(byteCount);
 		encoding.GetBytes(sortKey, span);
 
-		span[^1] = (byte)separator;
+		span[byteCount - 1] = (byte)separator;
 		writer.Advance(byteCount);
 
 		serializer.Serialize(value, writer);
@@ -38,13 +38,19 @@ public class BlobSortedNameSetRepository<T>(
 
 	private T Decode(ReadOnlySpan<char> value)
 	{
+		var pathSeparatorIndex = value.LastIndexOf('/');
+		if (pathSeparatorIndex != -1)
+		{
+			value = value[(pathSeparatorIndex + 1)..];
+		}
+
 		var separatorIndex = value.IndexOf(separator);
 		if (separatorIndex < 0)
 		{
 			throw new FormatException($"Invalid blob name format: {value}");
 		}
 
-		var encodedValue = value[..(separatorIndex + 1)];
+		var encodedValue = value[(separatorIndex + 1)..];
 		Span<byte> buffer = stackalloc byte[encoding.GetByteCount(encodedValue)];
 		encoding.GetBytes(encodedValue, buffer);
 		return serializer.Deserialize(buffer);

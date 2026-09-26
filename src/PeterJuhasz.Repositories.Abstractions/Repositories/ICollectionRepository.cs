@@ -51,20 +51,35 @@ public interface ICollectionRepository<T>
 	{
 		await ApplyAsync(items =>
 		{
+			// empty
 			if (items is null or { Count: 0 })
 			{
-				return items;
+				return [value];
 			}
 
+			// update
 			var newItems = items;
+			var found = false;
 
 			for (int i = 0; i < items.Count; i++)
 			{
 				var item = items[i];
 				if (EqualityComparer<T>.Default.Equals(item, value))
 				{
-					newItems = newItems.SetItem(i, update(item));
+					found = true;
+
+					var updatedItem = update(item);
+					if (!EqualityComparer<T>.Default.Equals(item, updatedItem))
+					{
+						newItems = newItems.SetItem(i, updatedItem);
+					}
 				}
+			}
+
+			// add
+			if (!found)
+			{
+				return items.Add(value);
 			}
 
 			return newItems;

@@ -62,6 +62,12 @@ public sealed partial class AzureBlob(BlobClient blob, WriteMode writeMode = Wri
 		}
 		catch (RequestFailedException ex) when (ex.ErrorCode == BlobErrorCode.ConditionNotMet)
 		{
+			// a specific ETag condition fails with 412 even when the blob does not exist
+			if (!await ExistsAsync(cancellationToken))
+			{
+				throw new NotFoundException("The specified blob does not exist.");
+			}
+
 			throw new ConflictException(concurrencyToken);
 		}
 	}
@@ -116,7 +122,32 @@ public sealed partial class AzureBlob(BlobClient blob, WriteMode writeMode = Wri
 						HttpHeaders = GetHttpHeaders(options.MediaType, options.ContentEncoding),
 						Metadata = options.Metadata?.AsOrToMutable(),
 					};
-					return await blob.OpenWriteAsync(overwrite: true, uploadOptions, cancellationToken);
+					try
+					{
+						return await blob.OpenWriteAsync(overwrite: true, uploadOptions, cancellationToken);
+					}
+					catch (RequestFailedException ex) when (ex.ErrorCode == BlobErrorCode.ContainerNotFound)
+					{
+						await blob.GetParentBlobContainerClient().CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken);
+						try
+						{
+							return await blob.OpenWriteAsync(overwrite: true, uploadOptions, cancellationToken);
+						}
+						catch (RequestFailedException ex2) when (
+							ex2.ErrorCode == BlobErrorCode.ConditionNotMet ||
+							ex2.ErrorCode == BlobErrorCode.BlobAlreadyExists
+						)
+						{
+							throw new ConflictException(concurrencyToken ?? "NONE");
+						}
+					}
+					catch (RequestFailedException ex) when (
+						ex.ErrorCode == BlobErrorCode.ConditionNotMet ||
+						ex.ErrorCode == BlobErrorCode.BlobAlreadyExists
+					)
+					{
+						throw new ConflictException(concurrencyToken ?? "NONE");
+					}
 				}
 
 			case WriteMode.BufferStreamUpload:
@@ -270,7 +301,13 @@ public sealed partial class AzureBlob(BlobClient blob, WriteMode writeMode = Wri
 		}
 		catch (RequestFailedException ex) when (ex.ErrorCode == BlobErrorCode.ConditionNotMet)
 		{
-			throw new ConflictException(concurrencyToken ?? "NONE");
+			// a specific ETag condition fails with 412 even when the blob does not exist
+			if (!await ExistsAsync(cancellationToken))
+			{
+				throw new NotFoundException("The specified blob does not exist.");
+			}
+
+			throw new ConflictException(concurrencyToken);
 		}
 	}
 

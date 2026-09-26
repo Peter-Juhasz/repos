@@ -50,6 +50,8 @@ jobs:
       
     - name: Test
       run: dotnet test --no-build --verbosity normal --collect "Code coverage"
+      env:
+        AzureStorage__ConnectionString: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
       
     - name: Pack Abstractions
       working-directory: src/PeterJuhasz.Repositories.Abstractions

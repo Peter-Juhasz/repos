@@ -17,6 +17,13 @@
 		<PackageReference Include="MSTest.TestAdapter" Version="*" />
 		<PackageReference Include="MSTest.TestFramework" Version="*" />
 		<PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="*" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="*" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="*" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- not committed; contains secrets for local runs, CI uses environment variables instead -->
+		<None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 	<ItemGroup>

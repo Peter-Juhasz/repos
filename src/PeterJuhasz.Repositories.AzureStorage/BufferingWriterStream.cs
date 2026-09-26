@@ -30,8 +30,24 @@ internal sealed class BufferingWriterStream(
 
 	public override Task FlushAsync(CancellationToken cancellationToken) => inner.FlushAsync(cancellationToken);
 
+	private bool _disposed;
+
+	protected override void Dispose(bool disposing)
+	{
+		if (disposing && !_disposed)
+		{
+			throw new NotSupportedException("The blob is uploaded on dispose, use DisposeAsync instead.");
+		}
+	}
+
 	public override async ValueTask DisposeAsync()
 	{
+		if (_disposed)
+		{
+			return;
+		}
+
+		_disposed = true;
 		try
 		{
 			inner.Position = 0;

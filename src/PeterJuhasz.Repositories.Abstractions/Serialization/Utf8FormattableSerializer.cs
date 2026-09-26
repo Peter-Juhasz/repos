@@ -1,4 +1,6 @@
 ﻿using System.Buffers;
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace PeterJuhasz.Repositories.Serialization;
@@ -13,7 +15,17 @@ public sealed class FormattableSerializer<T>(Encoding encoding, string format = 
 	public static readonly ISerializer<DateTime> DateTimeSerializer = new FormattableSerializer<DateTime>(Encoding.ASCII, "O");
 	public static readonly ISerializer<DateTimeOffset> DateTimeOffsetSerializer = new FormattableSerializer<DateTimeOffset>(Encoding.ASCII, "O");
 
+	private const int MaximumCharCount = 64;
+
+	private readonly int _maximumByteCount = encoding.GetMaxByteCount(MaximumCharCount);
+
 	public string MediaType { get; } = "text/plain";
+
+	public bool TryGetMaximumSerializedLength(T value, out int size)
+	{
+		size = _maximumByteCount;
+		return true;
+	}
 
 	public bool Deserialize(ReadOnlySpan<byte> buffer, out T value)
 	{
@@ -21,7 +33,15 @@ public sealed class FormattableSerializer<T>(Encoding encoding, string format = 
 		Span<char> charBuffer = stackalloc char[charCount];
 		encoding.GetChars(buffer, charBuffer);
 
-		return T.TryParse(charBuffer, null, out value!);
+		// the generic parser drops the kind of a round-trip ("O") formatted UTC value, and converts it to local time
+		if (typeof(T) == typeof(DateTime))
+		{
+			var result = DateTime.TryParse(charBuffer, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTime);
+			value = Unsafe.As<DateTime, T>(ref dateTime);
+			return result;
+		}
+
+		return T.TryParse(charBuffer, CultureInfo.InvariantCulture, out value!);
 	}
 
 	public Task<T> DeserializeAsync(Stream stream, CancellationToken cancellationToken)
@@ -31,7 +51,7 @@ public sealed class FormattableSerializer<T>(Encoding encoding, string format = 
 
 	public void Serialize(T value, IBufferWriter<byte> buffer)
 	{
-		var span = buffer.GetSpan(64);
+		var span = buffer.GetSpan(_maximumByteCount);
 		if (!Serialize(value, span, out int written))
 		{
 			throw new InvalidOperationException($"Failed to format {typeof(T).FullName} as UTF-8.");
@@ -41,8 +61,8 @@ public sealed class FormattableSerializer<T>(Encoding encoding, string format = 
 
 	public bool Serialize(T value, Span<byte> buffer, out int bytesWritten)
 	{
-		Span<char> charBuffer = stackalloc char[64];
-		if (!value.TryFormat(charBuffer, out bytesWritten, format, default))
+		Span<char> charBuffer = stackalloc char[MaximumCharCount];
+		if (!value.TryFormat(charBuffer, out bytesWritten, format, CultureInfo.InvariantCulture))
 		{
 			return false;
 		}
@@ -64,11 +84,19 @@ public sealed class Utf8FormattableSerializer<T>(string format = "") : ISerializ
 	public static readonly ISerializer<long> Int64Serializer = new Utf8FormattableSerializer<long>();
 	public static readonly ISerializer<ulong> UInt64Serializer = new Utf8FormattableSerializer<ulong>();
 
+	private const int MaximumLength = 64;
+
 	public string MediaType { get; } = "text/plain";
+
+	public bool TryGetMaximumSerializedLength(T value, out int size)
+	{
+		size = MaximumLength;
+		return true;
+	}
 
 	public bool Deserialize(ReadOnlySpan<byte> buffer, out T value)
 	{
-		return T.TryParse(buffer, null, out value!);
+		return T.TryParse(buffer, CultureInfo.InvariantCulture, out value!);
 	}
 
 	public Task<T> DeserializeAsync(Stream stream, CancellationToken cancellationToken)
@@ -78,8 +106,8 @@ public sealed class Utf8FormattableSerializer<T>(string format = "") : ISerializ
 
 	public void Serialize(T value, IBufferWriter<byte> buffer)
 	{
-		var span = buffer.GetSpan(64);
-		if (!value.TryFormat(span, out var written, format, default))
+		var span = buffer.GetSpan(MaximumLength);
+		if (!Serialize(value, span, out var written))
 		{
 			throw new InvalidOperationException($"Failed to format {typeof(T).FullName} as UTF-8.");
 		}
@@ -88,7 +116,7 @@ public sealed class Utf8FormattableSerializer<T>(string format = "") : ISerializ
 
 	public bool Serialize(T value, Span<byte> buffer, out int bytesWritten)
 	{
-		return value.TryFormat(buffer, out bytesWritten, format, default);
+		return value.TryFormat(buffer, out bytesWritten, format, CultureInfo.InvariantCulture);
 	}
 
 	public Task SerializeAsync(T value, Stream stream, CancellationToken cancellationToken)

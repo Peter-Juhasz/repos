@@ -9,6 +9,12 @@ public sealed class StringSerializer(Encoding encoding) : ISerializer<string>
 
 	public string MediaType { get; } = "text/plain";
 
+	public bool TryGetMaximumSerializedLength(string value, out int size)
+	{
+		size = encoding.GetMaxByteCount(value.Length);
+		return true;
+	}
+
 	public void Serialize(string value, IBufferWriter<byte> buffer)
 	{
 		var bytes = encoding.GetBytes(value);
@@ -54,10 +60,19 @@ public sealed class AsciiStringSerializer() : ISerializer<string>
 
 	public string MediaType { get; } = "text/plain";
 
+	public bool TryGetMaximumSerializedLength(string value, out int size)
+	{
+		size = value.Length;
+		return true;
+	}
+
 	public void Serialize(string value, IBufferWriter<byte> buffer)
 	{
 		var span = buffer.GetSpan(value.Length);
-		Ascii.FromUtf16(value, span, out var written);
+		if (!Serialize(value, span, out var written))
+		{
+			throw new ArgumentException("Value contains non-ASCII characters.", nameof(value));
+		}
 		buffer.Advance(written);
 	}
 
@@ -68,6 +83,12 @@ public sealed class AsciiStringSerializer() : ISerializer<string>
 
 	public bool Deserialize(ReadOnlySpan<byte> buffer, out string value)
 	{
+		if (!Ascii.IsValid(buffer))
+		{
+			value = string.Empty;
+			return false;
+		}
+
 		value = String.Create(buffer.Length, buffer, (span, bytes) =>
 		{
 			Ascii.ToUtf16(bytes, span, out _);

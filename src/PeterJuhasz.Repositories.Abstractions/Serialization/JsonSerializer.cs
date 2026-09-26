@@ -19,10 +19,7 @@ public sealed class JsonSerializerOptionsJsonSerializer<T>(JsonSerializerOptions
 
 	public bool Deserialize(ReadOnlySpan<byte> buffer, out T value)
 	{
-		if (buffer.StartsWith([(byte)0xEF, (byte)0xBB, (byte)0xBF]))
-		{
-			buffer = buffer[3..];
-		}
+		buffer = Utf8Bom.Skip(buffer);
 
 		value = JsonSerializer.Deserialize<T>(buffer, jsonSerializerOptions)!;
 		return true;
@@ -30,7 +27,7 @@ public sealed class JsonSerializerOptionsJsonSerializer<T>(JsonSerializerOptions
 
 	public bool Deserialize(ReadOnlySequence<byte> buffer, out T value)
 	{
-		var reader = new Utf8JsonReader(buffer);
+		var reader = new Utf8JsonReader(Utf8Bom.Skip(buffer));
 		value = JsonSerializer.Deserialize<T>(ref reader, jsonSerializerOptions)!;
 		return true;
 	}
@@ -60,10 +57,7 @@ public sealed class JsonSerializerOptionsJsonCollectionSerializer<T>(JsonSeriali
 
 	public bool Deserialize(ReadOnlySpan<byte> buffer, out IReadOnlyCollection<T> value)
 	{
-		if (buffer.StartsWith([(byte)0xEF, (byte)0xBB, (byte)0xBF]))
-		{
-			buffer = buffer[3..];
-		}
+		buffer = Utf8Bom.Skip(buffer);
 
 		value = JsonSerializer.Deserialize<IReadOnlyCollection<T>>(buffer, jsonSerializerOptions)!;
 		return true;
@@ -71,7 +65,7 @@ public sealed class JsonSerializerOptionsJsonCollectionSerializer<T>(JsonSeriali
 
 	public bool Deserialize(ReadOnlySequence<byte> buffer, out IReadOnlyCollection<T> value)
 	{
-		var reader = new Utf8JsonReader(buffer);
+		var reader = new Utf8JsonReader(Utf8Bom.Skip(buffer));
 		value = JsonSerializer.Deserialize<IReadOnlyCollection<T>>(ref reader, jsonSerializerOptions)!;
 		return true;
 	}
@@ -114,10 +108,7 @@ public sealed class JsonTypeInfoJsonSerializer<T>(JsonTypeInfo<T> jsonTypeInfo) 
 
 	public bool Deserialize(ReadOnlySpan<byte> buffer, out T value)
 	{
-		if (buffer.StartsWith([(byte)0xEF, (byte)0xBB, (byte)0xBF]))
-		{
-			buffer = buffer[3..];
-		}
+		buffer = Utf8Bom.Skip(buffer);
 
 		value = JsonSerializer.Deserialize(buffer, jsonTypeInfo)!;
 		return true;
@@ -125,7 +116,7 @@ public sealed class JsonTypeInfoJsonSerializer<T>(JsonTypeInfo<T> jsonTypeInfo) 
 
 	public bool Deserialize(ReadOnlySequence<byte> buffer, out T value)
 	{
-		var reader = new Utf8JsonReader(buffer);
+		var reader = new Utf8JsonReader(Utf8Bom.Skip(buffer));
 		value = JsonSerializer.Deserialize<T>(ref reader, jsonTypeInfo)!;
 		return true;
 	}
@@ -163,10 +154,7 @@ public sealed class JsonTypeInfoJsonCollectionSerializer<T>(
 
 	public bool Deserialize(ReadOnlySpan<byte> buffer, out IReadOnlyCollection<T> value)
 	{
-		if (buffer.StartsWith([(byte)0xEF, (byte)0xBB, (byte)0xBF]))
-		{
-			buffer = buffer[3..];
-		}
+		buffer = Utf8Bom.Skip(buffer);
 
 		value = JsonSerializer.Deserialize(buffer, collectionJsonTypeInfo)!;
 		return true;
@@ -174,7 +162,7 @@ public sealed class JsonTypeInfoJsonCollectionSerializer<T>(
 
 	public bool Deserialize(ReadOnlySequence<byte> buffer, out IReadOnlyCollection<T> value)
 	{
-		var reader = new Utf8JsonReader(buffer);
+		var reader = new Utf8JsonReader(Utf8Bom.Skip(buffer));
 		value = JsonSerializer.Deserialize<IReadOnlyCollection<T>>(ref reader, collectionJsonTypeInfo)!;
 		return true;
 	}

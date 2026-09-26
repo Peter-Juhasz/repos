@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Globalization;
 
 namespace PeterJuhasz.Repositories.Serialization;
 
@@ -6,11 +7,31 @@ public sealed class DateTimeTicksSerializer(string format = "") : ISerializer<Da
 {
 	public static readonly DateTimeTicksSerializer Instance = new();
 
+	private const int MaximumLength = 64;
+
 	public string MediaType { get; } = "text/plain";
+
+	public bool TryGetMaximumSerializedLength(DateTime value, out int size)
+	{
+		size = MaximumLength;
+		return true;
+	}
+
+	public bool TryGetMaximumSerializedLength(DateTimeOffset value, out int size)
+	{
+		size = MaximumLength;
+		return true;
+	}
 
 	public bool Deserialize(ReadOnlySpan<byte> buffer, out DateTime value)
 	{
-		if (!long.TryParse(buffer, out long ticks))
+		if (!long.TryParse(buffer, CultureInfo.InvariantCulture, out long ticks))
+		{
+			value = default;
+			return false;
+		}
+
+		if (ticks < DateTime.MinValue.Ticks || ticks > DateTime.MaxValue.Ticks)
 		{
 			value = default;
 			return false;
@@ -34,7 +55,7 @@ public sealed class DateTimeTicksSerializer(string format = "") : ISerializer<Da
 
 	public void Serialize(DateTime value, IBufferWriter<byte> buffer)
 	{
-		var span = buffer.GetSpan(20);
+		var span = buffer.GetSpan(MaximumLength);
 		if (!Serialize(value, span, out var written))
 		{
 			throw new InvalidOperationException($"Failed to format {typeof(DateTime).FullName} ticks as UTF-8.");
@@ -44,7 +65,7 @@ public sealed class DateTimeTicksSerializer(string format = "") : ISerializer<Da
 
 	public bool Serialize(DateTime value, Span<byte> buffer, out int bytesWritten)
 	{
-		return value.Ticks.TryFormat(buffer, out bytesWritten, format);
+		return value.Ticks.TryFormat(buffer, out bytesWritten, format, CultureInfo.InvariantCulture);
 	}
 
 	public void Serialize(DateTimeOffset value, IBufferWriter<byte> buffer)
@@ -65,7 +86,7 @@ public sealed class DateTimeTicksSerializer(string format = "") : ISerializer<Da
 
 	public Task SerializeAsync(DateTimeOffset value, Stream stream, CancellationToken cancellationToken)
 	{
-		throw new NotImplementedException();
+		throw new NotSupportedException();
 	}
 
 	public Task<DateTime> DeserializeAsync(Stream stream, CancellationToken cancellationToken)
@@ -75,6 +96,6 @@ public sealed class DateTimeTicksSerializer(string format = "") : ISerializer<Da
 
 	Task<DateTimeOffset> ISerializer<DateTimeOffset>.DeserializeAsync(Stream stream, CancellationToken cancellationToken)
 	{
-		throw new NotImplementedException();
+		throw new NotSupportedException();
 	}
 }

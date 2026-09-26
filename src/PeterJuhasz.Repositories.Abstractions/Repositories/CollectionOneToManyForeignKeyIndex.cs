@@ -22,17 +22,24 @@ public sealed class PartitionCollectionOneToManyForeignKeyIndex(
 
 	public async Task AddAsync(string principalKey, string foreignKey, CancellationToken cancellationToken)
 	{
+		// throwing a ConflictException inside ApplyAsync would be retried as a concurrency conflict
+		var exists = false;
 		await GetRepository(principalKey).ApplyAsync(items =>
 		{
 			items = items.Safe();
-
-			if (items.Contains(foreignKey, comparer))
+			exists = items.Contains(foreignKey, comparer);
+			if (exists)
 			{
-				throw new ConflictException(foreignKey);
+				return items;
 			}
 
 			return items.Add(foreignKey);
 		}, cancellationToken);
+
+		if (exists)
+		{
+			throw new ConflictException(foreignKey);
+		}
 	}
 
 	public async Task<bool> AddOrUpdateAsync(string principalKey, string foreignKey, CancellationToken cancellationToken)
@@ -55,7 +62,7 @@ public sealed class PartitionCollectionOneToManyForeignKeyIndex(
 	public async Task<bool> ContainsAsync(string principalKey, string foreignKey, CancellationToken cancellationToken)
 	{
 		var items = await GetRepository(principalKey).ListAsync(cancellationToken);
-		return items.Contains(foreignKey);
+		return items.Contains(foreignKey, comparer);
 	}
 
 	public IAsyncEnumerable<string> ListAsync(string principalKey, CancellationToken cancellationToken)
@@ -65,12 +72,10 @@ public sealed class PartitionCollectionOneToManyForeignKeyIndex(
 
 	public async Task DeleteAsync(string principalKey, string foreignKey, CancellationToken cancellationToken)
 	{
-		await GetRepository(principalKey).ApplyAsync(items =>
+		if (!await DeleteIfExistsAsync(principalKey, foreignKey, cancellationToken))
 		{
-			items = items.Safe();
-			var newItems = items.RemoveAll(e => effectiveComparer.Equals(e, foreignKey));
-			return newItems.Count is 0 ? null : newItems;
-		}, cancellationToken);
+			throw new NotFoundException(foreignKey);
+		}
 	}
 
 	public async Task DeleteAsync(string principalKey, CancellationToken cancellationToken)

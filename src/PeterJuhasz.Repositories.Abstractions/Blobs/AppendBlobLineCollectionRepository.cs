@@ -73,9 +73,10 @@ public class AppendBlobLineCollectionRepository<T>(
 		{
 			while (await reader.ReadLineAsync(maximumLength: 65_536, cancellationToken) is { IsEmpty: false } line)
 			{
-				var trimmed = line.Slice(0, line.Length - 1);
+				// the last line may not be terminated
+				var trimmed = TrimEndNewLine(line);
 
-				if (serializer.Deserialize(trimmed, out var item))
+				if (!trimmed.IsEmpty && serializer.Deserialize(trimmed, out var item))
 				{
 					yield return item;
 				}
@@ -87,6 +88,21 @@ public class AppendBlobLineCollectionRepository<T>(
 		{
 			await reader.CompleteAsync();
 		}
+	}
+
+	private static ReadOnlySequence<byte> TrimEndNewLine(ReadOnlySequence<byte> line)
+	{
+		if (line.Length > 0 && line.Slice(line.Length - 1).FirstSpan[0] == NewLineByte)
+		{
+			line = line.Slice(0, line.Length - 1);
+		}
+
+		if (line.Length > 0 && line.Slice(line.Length - 1).FirstSpan[0] == (byte)'\r')
+		{
+			line = line.Slice(0, line.Length - 1);
+		}
+
+		return line;
 	}
 
 	public Task ClearAsync(CancellationToken cancellationToken) => blob.DeleteAsync(cancellationToken);

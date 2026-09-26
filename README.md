@@ -385,6 +385,7 @@ In-memory implementations are useful for testing and prototyping.
 
 ```cs
 IBlob blob = new InMemoryBlob("item.json", TimeProvider.System);
+IAppendBlob appendBlob = new InMemoryAppendBlob("log.jsonl", TimeProvider.System);
 ```
 
 

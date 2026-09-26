@@ -72,14 +72,16 @@ public sealed class InMemoryObjectRepository<T> : IObjectRepository<T>
 	{
 		lock (_lock)
 		{
-			if (etag is not null && _stored?.ETag != etag)
+			var isMet = etag switch
 			{
-				throw new ConflictException(etag);
-			}
-
-			if (etag is null && _stored is not null)
+				null => _stored is null,
+				IBlob.AnyOrNoneConcurrencyToken => true,
+				IBlob.AnyConcurrencyToken => _stored is not null,
+				_ => _stored?.ETag == etag,
+			};
+			if (!isMet)
 			{
-				throw new ConflictException("Object already exists.");
+				throw new ConflictException(etag ?? "Object already exists.");
 			}
 
 			var result = new Versioned<T>(value, Guid.NewGuid().ToString());

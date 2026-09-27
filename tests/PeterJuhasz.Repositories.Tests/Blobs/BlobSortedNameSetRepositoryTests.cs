@@ -70,7 +70,7 @@ public class BlobSortedNameSetRepositoryTests(TestContext testContext)
 
 		await repository.AddAsync("apple", CT);
 
-		Assert.AreSequenceEqual(new[] { "3|apple" }, await Partition.GetBlobs(CT).Select(b => b.Name).ToListAsync(CT));
+		Assert.AreSequenceEqual(new[] { Partition.GetBlob("3|apple").Name }, await Partition.GetBlobs(CT).Select(b => b.Name).ToListAsync(CT));
 		var result = await Partition.GetBlob("3|apple").ReadAsync(CT);
 		Assert.IsNotNull(result);
 		Assert.IsTrue(result.Value.IsEmpty);

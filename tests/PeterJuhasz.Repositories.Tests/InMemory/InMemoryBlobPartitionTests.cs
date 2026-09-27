@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
 using PeterJuhasz.Repositories.Blobs;
 using PeterJuhasz.Repositories.InMemory;
+using System.Text.RegularExpressions;
 
 namespace PeterJuhasz.Repositories.Tests.InMemory;
 
@@ -17,8 +18,13 @@ public class InMemoryBlobPartitionTests(TestContext testContext)
 
 	private Task WriteAsync(IBlob blob) => blob.WriteAsync(Data, IBlob.AnyOrNoneConcurrencyToken, default, CT);
 
+	/// <summary>
+	/// Names of the listed blobs, without the root prefix (<c>memory://{id}/</c>).
+	/// </summary>
 	private async Task<string[]> GetBlobNamesAsync(IBlobPartition partition) =>
-		(await partition.GetBlobs(CT).ToListAsync(CT)).Select(b => b.Name).ToArray();
+		(await partition.GetBlobs(CT).ToListAsync(CT)).Select(b => WithoutRoot(b.Name)).ToArray();
+
+	private static string WithoutRoot(string name) => Regex.Replace(name, "^memory://[0-9]+/", "");
 
 	// Path
 
@@ -39,12 +45,21 @@ public class InMemoryBlobPartitionTests(TestContext testContext)
 	// GetBlob / GetAppendBlob
 
 	[TestMethod]
-	public void GetBlob_NameIncludesPath()
+	public void GetBlob_NameIncludesRootAndPath()
 	{
 		var partition = CreatePartition();
 
-		Assert.AreEqual("item.json", partition.GetBlob("item.json").Name);
-		Assert.AreEqual("a/b/item.json", partition.GetSubPartition("a").GetSubPartition("b").GetBlob("item.json").Name);
+		var name = partition.GetBlob("item.json").Name;
+
+		Assert.MatchesRegex("^memory://[0-9]+/item.json$", name);
+		var root = name[..^"item.json".Length];
+		Assert.AreEqual($"{root}a/b/item.json", partition.GetSubPartition("a").GetSubPartition("b").GetBlob("item.json").Name);
+	}
+
+	[TestMethod]
+	public void GetBlob_SeparateRootPartitions_HaveDifferentNames()
+	{
+		Assert.AreNotEqual(CreatePartition().GetBlob("item.json").Name, CreatePartition().GetBlob("item.json").Name);
 	}
 
 	[TestMethod]
@@ -105,7 +120,7 @@ public class InMemoryBlobPartitionTests(TestContext testContext)
 		var blob = partition.GetAppendBlob("log.jsonl");
 
 		Assert.AreSame(blob, partition.GetAppendBlob("log.jsonl"));
-		Assert.AreEqual("log.jsonl", blob.Name);
+		Assert.AreEqual("log.jsonl", WithoutRoot(blob.Name));
 	}
 
 	[TestMethod]

@@ -20,7 +20,7 @@ public sealed partial class AzureBlob(BlobClient blob, WriteMode writeMode = Wri
 	{
 		get
 		{
-			_name ??= blob.Uri.ToString().DecodeUri();
+			_name ??= GetName(blob);
 			return _name;
 		}
 	}
@@ -307,6 +307,14 @@ public sealed partial class AzureBlob(BlobClient blob, WriteMode writeMode = Wri
 	private static Exception NotFoundOrConflict(string concurrencyToken) => concurrencyToken == IBlob.AnyConcurrencyToken
 		? new NotFoundException("The specified blob does not exist.")
 		: new ConflictException(concurrencyToken);
+
+
+	/// <summary>
+	/// The container URI followed by the blob name as is, not URI encoded.
+	/// Composed instead of decoding <see cref="BlobBaseClient.Uri"/>, as that carries the query too (e.g. a SAS token).
+	/// </summary>
+	internal static string GetName(BlobBaseClient blob) =>
+		$"{blob.GetParentBlobContainerClient().Uri.GetLeftPart(UriPartial.Path)}/{blob.Name}";
 
 
 	internal static IBlob.ReadBlobInfo ToBlobInfo(BlobProperties properties) => new(

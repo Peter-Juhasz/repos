@@ -41,12 +41,16 @@ public sealed class AzureBlobPartition(BlobContainerClient client, string? path)
 
 	public IAsyncEnumerable<IBlob> GetBlobs(CancellationToken cancellationToken)
 	{
+		return GetBlobItems(cancellationToken).Select(b => client.GetBlobClient(b.Name).AsBlob());
+	}
+
+	private IAsyncEnumerable<BlobItem> GetBlobItems(CancellationToken cancellationToken)
+	{
 		return client.GetBlobsAsync(new()
 		{
 			Prefix = path == null ? null : $"{path}/",
 		}, cancellationToken)
-			.Catch<BlobItem, RequestFailedException>(ex => ex.ErrorCode == BlobErrorCode.ContainerNotFound, AsyncEnumerable.Empty<BlobItem>, NullLogger.Instance, cancellationToken)
-			.Select(b => new AzureBlob(client.GetBlobClient(b.Name)));
+			.Catch<BlobItem, RequestFailedException>(ex => ex.ErrorCode == BlobErrorCode.ContainerNotFound, AsyncEnumerable.Empty<BlobItem>, NullLogger.Instance, cancellationToken);
 	}
 
 	public async Task ClearAsync(CancellationToken cancellationToken)
@@ -55,9 +59,10 @@ public sealed class AzureBlobPartition(BlobContainerClient client, string? path)
 		{
 			var batchClient = client.GetParentBlobServiceClient().GetBlobBatchClient();
 			var batch = batchClient.CreateBatch();
-			await foreach (var item in GetBlobs(cancellationToken))
+			await foreach (var item in GetBlobItems(cancellationToken))
 			{
-				batch.DeleteBlob(item.Name.ToUri(UriKind.Absolute));
+				// the batch encodes the names into the request URI itself
+				batch.DeleteBlob(client.Name, item.Name);
 				if (batch.RequestCount >= 200) // 256
 				{
 					await batchClient.SubmitBatchAsync(batch, throwOnAnyFailure: false, cancellationToken);

@@ -9,7 +9,10 @@ public abstract class FileInfoBlobBase(FileInfo file)
 
 	public FileInfo File => file;
 
-	public string Name => file.Name;
+	/// <summary>
+	/// The full path of the file, with <c>/</c> as separator on Windows too.
+	/// </summary>
+	public string Name { get; } = file.FullName.Replace(System.IO.Path.DirectorySeparatorChar, '/');
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	protected static IBlob.ReadBlobInfo ToReadInfo(FileInfo file) => new(

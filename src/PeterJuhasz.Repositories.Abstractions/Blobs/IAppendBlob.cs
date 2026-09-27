@@ -2,6 +2,7 @@
 
 public interface IAppendBlob
 {
+	/// <inheritdoc cref="IBlob.Name"/>
 	string Name { get; }
 
 	Task<IBlob.ReadBlobInfo?> GetInfoAsync(CancellationToken cancellationToken);

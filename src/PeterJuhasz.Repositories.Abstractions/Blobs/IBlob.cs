@@ -10,6 +10,11 @@ public interface IBlob
 	const string AnyConcurrencyToken = "*";
 	const string AnyOrNoneConcurrencyToken = "**";
 
+	/// <summary>
+	/// The full name of the blob, segments separated by <c>/</c> and not URI encoded, unique within the process (so it can be used as a cache key).
+	/// Its last segment is the name of the blob within its partition.
+	/// </summary>
+	/// <example><c>C:/data/items/1.json</c>, <c>https://account.blob.core.windows.net/container/items/1.json</c>, <c>memory://1/items/1.json</c></example>
 	string Name { get; }
 
 	Task<ReadBlobInfo?> GetInfoAsync(CancellationToken cancellationToken);

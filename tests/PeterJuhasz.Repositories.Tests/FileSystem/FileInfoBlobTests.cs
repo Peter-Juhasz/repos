@@ -39,11 +39,22 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 	// Name / File
 
 	[TestMethod]
-	public void Name_ReturnsFileName()
+	public void Name_ReturnsFullPathWithSlashes()
 	{
-		var blob = CreateBlob("some.bin");
+		var file = GetFile(Path.Combine("some dir", "some.bin"));
 
-		Assert.AreEqual("some.bin", blob.Name);
+		var blob = new FileInfoBlob(file);
+
+		Assert.AreEqual(file.FullName.Replace(Path.DirectorySeparatorChar, '/'), blob.Name);
+		Assert.EndsWith("/some dir/some.bin", blob.Name);
+	}
+
+	[TestMethod]
+	public void AppendBlob_Name_ReturnsFullPathWithSlashes()
+	{
+		var file = GetFile(Path.Combine("some dir", "some.bin"));
+
+		Assert.AreEqual(new FileInfoBlob(file).Name, new FileInfoAppendBlob(file).Name);
 	}
 
 	[TestMethod]
@@ -607,4 +618,19 @@ public sealed class FileInfoBlobTests(TestContext testContext) : IDisposable
 		Assert.AreEqual(2, calls);
 		Assert.AreSequenceEqual(OtherData, await ReadBytesAsync(blob));
 	}
+
+	// Object repository
+
+	[TestMethod]
+	public async Task AsJsonObjectRepository_RoundTripsWithoutStoredMediaType()
+	{
+		var repository = CreateBlob().AsJsonObjectRepository<Item>(System.Text.Json.JsonSerializerOptions.Web);
+
+		await repository.CreateAsync(new Item("a"), CT);
+		await repository.ApplyAsync(current => new Item(current!.Name + "b"), CT);
+
+		Assert.AreEqual(new Item("ab"), await repository.GetAsync(CT));
+	}
+
+	private sealed record Item(string Name);
 }

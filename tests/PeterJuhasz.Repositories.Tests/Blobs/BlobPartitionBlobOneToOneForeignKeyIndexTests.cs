@@ -81,7 +81,7 @@ public class BlobPartitionBlobOneToOneForeignKeyIndexTests(TestContext testConte
 
 		Assert.AreEqual("pk", await ReadBlobAsync("fk.ref"));
 		Assert.AreEqual("text/plain", (await Partition.GetBlob("fk.ref").GetInfoAsync(CT))?.MediaType);
-		Assert.AreSequenceEqual(new[] { "fk.ref" }, await Partition.GetBlobs(CT).Select(b => b.Name).ToArrayAsync(CT));
+		Assert.AreSequenceEqual(new[] { Partition.GetBlob("fk.ref").Name }, await Partition.GetBlobs(CT).Select(b => b.Name).ToArrayAsync(CT));
 	}
 
 	[TestMethod]

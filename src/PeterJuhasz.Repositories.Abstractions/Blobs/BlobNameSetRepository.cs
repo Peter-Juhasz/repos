@@ -61,16 +61,7 @@ public class BlobNameSetRepository<T>(
 
 	public IAsyncEnumerable<T> ListAsync(CancellationToken cancellationToken)
 	{
-		return partition.GetBlobs(cancellationToken).Select(item =>
-		{
-			var separatorIndex = item.Name.LastIndexOf('/');
-			if (separatorIndex == -1)
-			{
-				return Decode(item.Name);
-			}
-
-			return Decode(item.Name.AsSpan(separatorIndex + 1));
-		});
+		return partition.GetBlobs(cancellationToken).Select(item => Decode(BlobName.GetLastSegment(item.Name)));
 	}
 }
 
@@ -114,16 +105,7 @@ public sealed class BlobNameStringSet(
 
 	public IAsyncEnumerable<string> ListAsync(CancellationToken cancellationToken)
 	{
-		return partition.GetBlobs(cancellationToken).Select(item =>
-		{
-			var separatorIndex = item.Name.LastIndexOf('/');
-			if (separatorIndex == -1)
-			{
-				return item.Name;
-			}
-
-			return item.Name[(separatorIndex + 1)..];
-		});
+		return partition.GetBlobs(cancellationToken).Select(item => BlobName.GetLastSegment(item.Name).ToString());
 	}
 }
 

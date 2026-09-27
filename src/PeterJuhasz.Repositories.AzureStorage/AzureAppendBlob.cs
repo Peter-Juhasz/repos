@@ -12,7 +12,7 @@ public sealed class AzureAppendBlob(AppendBlobClient blob, string contentType = 
 	{
 		get
 		{
-			_name ??= blob.Uri.ToString();
+			_name ??= AzureBlob.GetName(blob);
 			return _name;
 		}
 	}

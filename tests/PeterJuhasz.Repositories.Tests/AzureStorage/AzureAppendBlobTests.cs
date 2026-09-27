@@ -48,13 +48,14 @@ public sealed class AzureAppendBlobTests(TestContext testContext) : IAsyncDispos
 	// Name
 
 	[TestMethod]
-	public void Name_ReturnsUri()
+	public void Name_ReturnsContainerUriAndUnencodedName()
 	{
-		var client = GetClient();
+		var client = GetClient("some dir/a b.bin");
 
 		var blob = new AzureAppendBlob(client);
 
-		Assert.AreEqual(client.Uri.ToString(), blob.Name);
+		Assert.AreEqual($"{_container.Client.Uri}/some dir/a b.bin", blob.Name);
+		Assert.AreEqual(new AzureBlob(_container.GetBlobClient("some dir/a b.bin")).Name, blob.Name);
 	}
 
 	// Empty blob

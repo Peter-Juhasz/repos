@@ -117,12 +117,12 @@ public class BlobObjectRepositoryTests(TestContext testContext)
 	}
 
 	[TestMethod]
-	public async Task GetOrDefaultWithVersionAsync_NoMediaType_Throws()
+	public async Task GetOrDefaultWithVersionAsync_NoMediaType_Deserializes()
 	{
 		var repository = CreateRepository();
 		await WriteBlobAsync(ValueJson, null, default);
 
-		await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await repository.GetOrDefaultWithVersionAsync(CT));
+		Assert.AreEqual(Value, await repository.GetAsync(CT));
 	}
 
 	[TestMethod]
@@ -443,6 +443,35 @@ public class BlobObjectRepositoryTests(TestContext testContext)
 		Assert.IsNotNull(info.Metadata);
 		Assert.AreEqual("b", info.Metadata["a"]);
 		Assert.AreEqual(OtherValueJson, await ReadBlobAsync());
+	}
+
+	[TestMethod]
+	public async Task ApplyAsync_UnexpectedMediaType_ThrowsAndKeepsBlob()
+	{
+		var repository = CreateRepository();
+		var token = await WriteBlobAsync(ValueJson, null, new(MediaType: "text/plain"));
+
+		await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await repository.ApplyAsync(_ => OtherValue, CT));
+
+		Assert.AreEqual(ValueJson, await ReadBlobAsync());
+		Assert.AreEqual(token, await GetBlobTokenAsync());
+	}
+
+	[TestMethod]
+	public async Task ApplyAsync_NoMediaType_Updates()
+	{
+		var repository = CreateRepository();
+		await WriteBlobAsync(ValueJson, null, default);
+
+		var result = await repository.ApplyAsync(current =>
+		{
+			Assert.AreEqual(Value, current);
+			return OtherValue;
+		}, CT);
+
+		Assert.AreEqual(OtherValue, result);
+		Assert.AreEqual(OtherValueJson, await ReadBlobAsync());
+		Assert.AreEqual("application/json", (await Blob.GetInfoAsync(CT))?.MediaType);
 	}
 
 	[TestMethod]

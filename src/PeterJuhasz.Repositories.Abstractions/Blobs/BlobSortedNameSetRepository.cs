@@ -38,12 +38,6 @@ public class BlobSortedNameSetRepository<T>(
 
 	private T Decode(ReadOnlySpan<char> value)
 	{
-		var pathSeparatorIndex = value.LastIndexOf('/');
-		if (pathSeparatorIndex != -1)
-		{
-			value = value[(pathSeparatorIndex + 1)..];
-		}
-
 		var separatorIndex = value.IndexOf(separator);
 		if (separatorIndex < 0)
 		{
@@ -91,7 +85,7 @@ public class BlobSortedNameSetRepository<T>(
 
 	public IAsyncEnumerable<T> ListAsync(CancellationToken cancellationToken)
 	{
-		return partition.GetBlobs(cancellationToken).Select(item => Decode(item.Name));
+		return partition.GetBlobs(cancellationToken).Select(item => Decode(BlobName.GetLastSegment(item.Name)));
 	}
 }
 

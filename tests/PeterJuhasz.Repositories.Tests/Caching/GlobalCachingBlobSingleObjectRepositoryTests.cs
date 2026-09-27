@@ -173,7 +173,6 @@ public class GlobalCachingBlobSingleObjectRepositoryTests(TestContext testContex
 	}
 
 	[TestMethod]
-	[Ignore("Known issue: the cache key is the blob name, which is only the file name for files.")]
 	public async Task WithCaching_FilesWithSameNameInDifferentDirectories_AreNotShared()
 	{
 		using var directory = new TemporaryDirectory();

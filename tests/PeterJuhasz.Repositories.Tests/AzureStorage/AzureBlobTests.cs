@@ -1,3 +1,5 @@
+using Azure.Storage.Blobs;
+using Azure.Storage.Sas;
 using PeterJuhasz.Repositories.AzureStorage;
 using PeterJuhasz.Repositories.Blobs;
 
@@ -59,13 +61,25 @@ public sealed class AzureBlobTests(TestContext testContext) : IAsyncDisposable
 	// Name / Client
 
 	[TestMethod]
-	public void Name_ReturnsDecodedUri()
+	[DataRow("some dir/a b.bin")]
+	[DataRow("a%20b#c?d.bin")]
+	public void Name_ReturnsContainerUriAndUnencodedName(string name)
 	{
-		var client = _container.GetBlobClient("some dir/a b.bin");
+		var client = _container.GetBlobClient(name);
 
 		var blob = new AzureBlob(client);
 
-		Assert.EndsWith($"/{_container.Name}/some dir/a b.bin", blob.Name);
+		Assert.AreEqual($"{_container.Client.Uri}/{name}", blob.Name);
+	}
+
+	[TestMethod]
+	public void Name_WithSas_ExcludesQuery()
+	{
+		var sasUri = _container.GetBlobClient("some dir/a b.bin").GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddHours(1));
+
+		var blob = new AzureBlob(new BlobClient(sasUri));
+
+		Assert.AreEqual($"{_container.Client.Uri}/some dir/a b.bin", blob.Name);
 	}
 
 	[TestMethod]

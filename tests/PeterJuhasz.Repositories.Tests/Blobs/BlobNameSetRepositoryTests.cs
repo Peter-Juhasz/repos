@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
 using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Blobs;
+using PeterJuhasz.Repositories.FileSystem;
 using PeterJuhasz.Repositories.InMemory;
 using PeterJuhasz.Repositories.Serialization;
 using System.Text;
@@ -259,5 +260,16 @@ public class BlobNameStringSetTests(TestContext testContext)
 
 		Assert.IsTrue(await repository.ContainsAsync("árvíztűrő", CT));
 		Assert.AreSequenceEqual(new[] { "árvíztűrő" }, await repository.ListAsync(CT).ToListAsync(CT));
+	}
+
+	[TestMethod]
+	public async Task FileSystemPartition_ListsNamesWithoutPath()
+	{
+		using var directory = new TemporaryDirectory();
+		var repository = directory.Directory.GetPartition("x").AsStringSetRepositoryAsNames();
+
+		await repository.AddAsync("a", CT);
+
+		Assert.AreSequenceEqual(new[] { "a" }, await repository.ListAsync(CT).ToListAsync(CT));
 	}
 }

@@ -6,17 +6,26 @@ namespace PeterJuhasz.Repositories.InMemory;
 
 public sealed class InMemoryBlobPartition : IBlobPartition
 {
+	private static int _lastRootId;
+
 	private readonly ConcurrentDictionary<string, object> _blobs;
 	private readonly TimeProvider _timeProvider;
 
+	/// <summary>
+	/// Prefix of the full names of blobs in this partition, e.g. <c>memory://1/a/b/</c>.
+	/// Starts with an id unique to the root partition, so blobs of separate roots don't share names.
+	/// </summary>
+	private readonly string _prefix;
+
 	public InMemoryBlobPartition(TimeProvider timeProvider)
-		: this(new(StringComparer.Ordinal), timeProvider, path: null)
+		: this(new(StringComparer.Ordinal), timeProvider, $"memory://{Interlocked.Increment(ref _lastRootId)}/", path: null)
 	{ }
 
-	private InMemoryBlobPartition(ConcurrentDictionary<string, object> blobs, TimeProvider timeProvider, string? path)
+	private InMemoryBlobPartition(ConcurrentDictionary<string, object> blobs, TimeProvider timeProvider, string prefix, string? path)
 	{
 		_blobs = blobs;
 		_timeProvider = timeProvider;
+		_prefix = prefix;
 		Path = path;
 	}
 
@@ -26,7 +35,7 @@ public sealed class InMemoryBlobPartition : IBlobPartition
 
 	public IAppendBlob GetAppendBlob(string name) => GetOrAdd(GetBlobName(name), static (name, timeProvider) => new InMemoryAppendBlob(name, timeProvider));
 
-	public IBlobPartition GetSubPartition(string name) => new InMemoryBlobPartition(_blobs, _timeProvider, GetBlobName(name));
+	public IBlobPartition GetSubPartition(string name) => new InMemoryBlobPartition(_blobs, _timeProvider, $"{_prefix}{name}/", Path == null ? name : $"{Path}/{name}");
 
 	public async IAsyncEnumerable<IBlob> GetBlobs([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
@@ -61,14 +70,15 @@ public sealed class InMemoryBlobPartition : IBlobPartition
 		}
 	}
 
-	private string GetBlobName(string name) => Path == null ? name : $"{Path}/{name}";
+	private string GetBlobName(string name) => _prefix + name;
 
 	/// <summary>
 	/// Blobs of this partition and its sub-partitions, ordered by name.
 	/// </summary>
 	private IEnumerable<object> GetEntries()
 	{
-		var prefix = Path == null ? null : $"{Path}/";
+		// every name in the root shares its prefix, so filtering is only needed for sub-partitions
+		var prefix = Path == null ? null : _prefix;
 		return _blobs
 			.Where(e => prefix == null || e.Key.StartsWith(prefix, StringComparison.Ordinal))
 			.OrderBy(e => e.Key, StringComparer.Ordinal)

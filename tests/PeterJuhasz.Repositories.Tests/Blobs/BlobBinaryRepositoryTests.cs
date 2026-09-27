@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Time.Testing;
 using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Blobs;
+using PeterJuhasz.Repositories.Caching;
+using PeterJuhasz.Repositories.FileSystem;
 using PeterJuhasz.Repositories.InMemory;
 
 namespace PeterJuhasz.Repositories.Tests.Blobs;
@@ -443,5 +445,21 @@ public class BlobBinaryRepositoryTests(TestContext testContext)
 		await repository.DeleteIfExistsAsync(CT);
 
 		Assert.IsFalse(await Blob.ExistsAsync(CT));
+	}
+
+	// WithCaching
+
+	[TestMethod]
+	public async Task WithCaching_FilesWithSameNameInDifferentDirectories_AreNotShared()
+	{
+		using var directory = new TemporaryDirectory();
+		var name = $"{Guid.NewGuid():N}.bin";
+		var first = new FileInfoBlob(directory.GetFile(Path.Combine("a", name))).AsBinaryRepository().WithCaching(CacheOptions.Immutable);
+		var second = new FileInfoBlob(directory.GetFile(Path.Combine("b", name))).AsBinaryRepository().WithCaching(CacheOptions.Immutable);
+		await first.CreateAsync(Data(Value), CT);
+		await second.CreateAsync(Data(OtherValue), CT);
+
+		Assert.AreSequenceEqual(Value, (await first.GetAsync(CT))?.ToArray());
+		Assert.AreSequenceEqual(OtherValue, (await second.GetAsync(CT))?.ToArray());
 	}
 }

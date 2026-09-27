@@ -33,10 +33,7 @@ public class BlobObjectRepository<T>(
 			return null;
 		}
 
-		if (result.Info.MediaType != serializer.MediaType)
-		{
-			throw new InvalidOperationException($"Unexpected content type: {result.Info.MediaType}");
-		}
+		EnsureMediaType(result.Info);
 
 		if (!serializer.Deserialize(result.Value, out var value))
 		{
@@ -78,11 +75,11 @@ public class BlobObjectRepository<T>(
 		return OptimisticConcurrency.RetryAsync(async ct =>
 		{
 			var result = await blob.ReadAsync(ct);
-			var oldData = result?.Value;
 			T? oldObject = null;
-			if (oldData != null)
+			if (result != null)
 			{
-				oldObject = serializer.Deserialize(oldData.ToMemory().Span);
+				EnsureMediaType(result.Info);
+				oldObject = serializer.Deserialize(result.Value.ToMemory().Span);
 			}
 
 			var newObject = await transform(oldObject, ct);
@@ -106,6 +103,18 @@ public class BlobObjectRepository<T>(
 			await blob.WriteAsync(writer.WrittenMemory, result?.Info.ConcurrencyToken, new(MediaType: serializer.MediaType, Metadata: result?.Info.Metadata), ct);
 			return newObject;
 		}, concurrencyOptions, cancellationToken);
+	}
+
+	/// <summary>
+	/// Rejects content stored with a different media type than the serializer's.
+	/// A missing media type (e.g. file system blobs don't store one) is unknown rather than different, so the content is trusted to be in the format of the serializer.
+	/// </summary>
+	private void EnsureMediaType(IBlob.ReadBlobInfo info)
+	{
+		if (info.MediaType is { } mediaType && mediaType != serializer.MediaType)
+		{
+			throw new InvalidOperationException($"Unexpected content type: {mediaType}");
+		}
 	}
 }
 

@@ -15,6 +15,9 @@ public class CachingObjectRepository<T>(
 
 	public IObjectRepository<T> Inner => inner;
 
+	public async Task<bool> ExistsAsync(CancellationToken cancellationToken) =>
+		await GetVersionAsync(cancellationToken) != null;
+
 	public async ValueTask<Versioned<T>?> GetOrDefaultWithVersionAsync(CancellationToken cancellationToken)
 	{
 		if (_cacheEntry is { Value: not null } cached)
@@ -47,25 +50,19 @@ public class CachingObjectRepository<T>(
 			return null;
 		}
 
-		var expiresAt = DateTimeOffset.MaxValue;
-		if (cacheOptions.SlidingExpiration != null)
+		_cacheEntry = GetEntry(result.Value.ETag) with
 		{
-			expiresAt = timeProvider.GetUtcNow().Add(cacheOptions.SlidingExpiration.Value);
-		}
-
-		_cacheEntry = new CacheEntry(result.Value.ETag, expiresAt)
-		{
-			Value = result.Value,
+			Value = result.Value.Value,
 		};
 
-		return new(result.Value, result.Value.ETag);
+		return result;
 	}
 
 	public async Task<string?> GetVersionAsync(CancellationToken cancellationToken)
 	{
 		if (!cacheOptions.MustRevalidate)
 		{
-			if (_cacheEntry is { Value: not null } cached)
+			if (_cacheEntry is { } cached)
 			{
 				if (cached.ExpiresAt > timeProvider.GetUtcNow())
 				{
@@ -81,13 +78,7 @@ public class CachingObjectRepository<T>(
 			return null;
 		}
 
-		var expiresAt = DateTimeOffset.MaxValue;
-		if (cacheOptions.SlidingExpiration != null)
-		{
-			expiresAt = timeProvider.GetUtcNow().Add(cacheOptions.SlidingExpiration.Value);
-		}
-
-		_cacheEntry = new CacheEntry(newVersion, expiresAt);
+		_cacheEntry = GetEntry(newVersion);
 
 		return newVersion;
 	}
@@ -126,13 +117,7 @@ public class CachingObjectRepository<T>(
 
 		var data = await BinaryData.FromStreamAsync(result.Value.Stream, cancellationToken);
 
-		var expiresAt = DateTimeOffset.MaxValue;
-		if (cacheOptions.SlidingExpiration != null)
-		{
-			expiresAt = timeProvider.GetUtcNow().Add(cacheOptions.SlidingExpiration.Value);
-		}
-
-		_cacheEntry = new CacheEntry(result.Value.ETag, expiresAt)
+		_cacheEntry = GetEntry(result.Value.ETag) with
 		{
 			BinaryData = data,
 			LastModified = result.Value.LastModified,
@@ -142,41 +127,93 @@ public class CachingObjectRepository<T>(
 		return new(data.ToStream(), result.Value.LastModified, result.Value.ETag, result.Value.Encoding);
 	}
 
+	/// <summary>
+	/// Returns the current entry if it is still fresh and has the same version, so the value and the raw content of a version are cached together.
+	/// </summary>
+	private CacheEntry GetEntry(string version)
+	{
+		if (_cacheEntry is { } current && current.Version == version && current.ExpiresAt > timeProvider.GetUtcNow())
+		{
+			return current;
+		}
+
+		var expiresAt = DateTimeOffset.MaxValue;
+		if (cacheOptions.SlidingExpiration != null)
+		{
+			expiresAt = timeProvider.GetUtcNow().Add(cacheOptions.SlidingExpiration.Value);
+		}
+
+		return new(version, expiresAt);
+	}
+
+
+	// immutable, so concurrent readers never observe a partially updated entry
+	private sealed record class CacheEntry(string Version, DateTimeOffset ExpiresAt)
+	{
+		public T? Value { get; init; }
+
+		public BinaryData? BinaryData { get; init; }
+
+		public DateTimeOffset? LastModified { get; init; }
+
+		public string? ContentEncoding { get; init; }
+	}
+
+
+	#region Forwarded writes
+
+	// writes invalidate even when they fail, e.g. a conflict means the cached version is stale
+
 	public async Task<Versioned<T>> StoreAsync(T value, string? etag, CancellationToken cancellationToken)
 	{
-		var result = await inner.StoreAsync(value, etag, cancellationToken);
-		_cacheEntry = null;
-		return result;
+		try
+		{
+			return await inner.StoreAsync(value, etag, cancellationToken);
+		}
+		finally
+		{
+			_cacheEntry = null;
+		}
+	}
+
+	// forwarded instead of the default implementation, so it reads the current version instead of the cache, and the inner implementation is used (e.g. comparer, metadata)
+	public async Task<T?> ApplyAsync(Func<T?, CancellationToken, ValueTask<T?>> factory, CancellationToken cancellationToken)
+	{
+		try
+		{
+			return await inner.ApplyAsync(factory, cancellationToken);
+		}
+		finally
+		{
+			_cacheEntry = null;
+		}
 	}
 
 	public async Task<bool> DeleteIfExistsAsync(CancellationToken cancellationToken)
 	{
-		var deleted = await inner.DeleteIfExistsAsync(cancellationToken);
-		_cacheEntry = null;
-		return deleted;
+		try
+		{
+			return await inner.DeleteIfExistsAsync(cancellationToken);
+		}
+		finally
+		{
+			_cacheEntry = null;
+		}
 	}
 
 	public async Task DeleteWithVersionAsync(string etag, CancellationToken cancellationToken)
 	{
-		await inner.DeleteWithVersionAsync(etag, cancellationToken);
-		_cacheEntry = null;
+		try
+		{
+			await inner.DeleteWithVersionAsync(etag, cancellationToken);
+		}
+		finally
+		{
+			_cacheEntry = null;
+		}
 	}
 
-
-	private sealed class CacheEntry(string version, DateTimeOffset expiresAt)
-	{
-		public string Version { get; } = version;
-
-		public DateTimeOffset ExpiresAt { get; } = expiresAt;
-
-		public T? Value { get; set; }
-
-		public BinaryData? BinaryData { get; set; }
-
-		public DateTimeOffset? LastModified { get; set; }
-
-		public string? ContentEncoding { get; set; }
-	}
+	#endregion
 }
 
 public class GlobalCachingBlobSingleObjectRepository<T>(

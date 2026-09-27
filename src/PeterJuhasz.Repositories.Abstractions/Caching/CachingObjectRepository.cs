@@ -228,6 +228,9 @@ public class GlobalCachingBlobSingleObjectRepository<T>(
 
 	public IObjectRepository<T> Inner => inner;
 
+	public async Task<bool> ExistsAsync(CancellationToken cancellationToken) =>
+		await GetVersionAsync(cancellationToken) != null;
+
 	public async ValueTask<Versioned<T>?> GetOrDefaultWithVersionAsync(CancellationToken cancellationToken)
 	{
 		if (cache.TryGetValue(cacheKey, out var cached) && cached is { Value: not null })
@@ -300,7 +303,7 @@ public class GlobalCachingBlobSingleObjectRepository<T>(
 	{
 		if (!cacheOptions.MustRevalidate)
 		{
-			if (cache.TryGetValue(cacheKey, out var cached) && cached is { Value: not null })
+			if (cache.TryGetValue(cacheKey, out var cached))
 			{
 				if (cached.ExpiresAt > timeProvider.GetUtcNow())
 				{
@@ -414,25 +417,60 @@ public class GlobalCachingBlobSingleObjectRepository<T>(
 		return new(data.ToStream(), result.Value.LastModified, result.Value.ETag, result.Value.Encoding);
 	}
 
+	#region Forwarded writes
+
+	// writes invalidate even when they fail, e.g. a conflict means the cached version is stale
+
 	public async Task<Versioned<T>> StoreAsync(T value, string? etag, CancellationToken cancellationToken)
 	{
-		var result = await inner.StoreAsync(value, etag, cancellationToken);
-		cache.TryRemove(cacheKey, out _);
-		return result;
+		try
+		{
+			return await inner.StoreAsync(value, etag, cancellationToken);
+		}
+		finally
+		{
+			cache.TryRemove(cacheKey, out _);
+		}
+	}
+
+	// forwarded instead of the default implementation, so it reads the current version instead of the cache, and the inner implementation is used (e.g. comparer, metadata)
+	public async Task<T?> ApplyAsync(Func<T?, CancellationToken, ValueTask<T?>> factory, CancellationToken cancellationToken)
+	{
+		try
+		{
+			return await inner.ApplyAsync(factory, cancellationToken);
+		}
+		finally
+		{
+			cache.TryRemove(cacheKey, out _);
+		}
 	}
 
 	public async Task<bool> DeleteIfExistsAsync(CancellationToken cancellationToken)
 	{
-		var deleted = await inner.DeleteIfExistsAsync(cancellationToken);
-		cache.TryRemove(cacheKey, out _);
-		return deleted;
+		try
+		{
+			return await inner.DeleteIfExistsAsync(cancellationToken);
+		}
+		finally
+		{
+			cache.TryRemove(cacheKey, out _);
+		}
 	}
 
 	public async Task DeleteWithVersionAsync(string etag, CancellationToken cancellationToken)
 	{
-		await inner.DeleteWithVersionAsync(etag, cancellationToken);
-		cache.TryRemove(cacheKey, out _);
+		try
+		{
+			await inner.DeleteWithVersionAsync(etag, cancellationToken);
+		}
+		finally
+		{
+			cache.TryRemove(cacheKey, out _);
+		}
 	}
+
+	#endregion
 
 
 	private sealed class CacheEntry(string version, DateTimeOffset expiresAt)

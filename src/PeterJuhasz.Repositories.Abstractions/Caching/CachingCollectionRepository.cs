@@ -14,8 +14,11 @@ public class CachingCollectionRepository<T>(
 
 	public ICollectionRepository<T> Inner => inner;
 
-	public Task ApplyAsync(Func<IImmutableList<T>?, CancellationToken, ValueTask<IReadOnlyCollection<T>?>> update, CancellationToken cancellationToken) =>
-		inner.ApplyAsync(update, cancellationToken);
+	public async Task ApplyAsync(Func<IImmutableList<T>?, CancellationToken, ValueTask<IReadOnlyCollection<T>?>> update, CancellationToken cancellationToken)
+	{
+		await inner.ApplyAsync(update, cancellationToken);
+		_cacheEntry = null;
+	}
 
 	public async IAsyncEnumerable<T> AsAsyncEnumerableAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
@@ -119,25 +122,6 @@ public class CachingCollectionRepository<T>(
 
 	public async Task<int> CountAsync(CancellationToken cancellationToken)
 	{
-		if (_cacheEntry is { Items: not null } cached)
-		{
-			if (cached.ExpiresAt > timeProvider.GetUtcNow())
-			{
-				if (cacheOptions.MustRevalidate)
-				{
-					var currentVersion = await inner.GetVersionAsync(cancellationToken);
-					if (currentVersion == cached.Version)
-					{
-						return cached.Items.Count;
-					}
-				}
-				else
-				{
-					return cached.Items.Count;
-				}
-			}
-		}
-
 		var list = await ListWithVersionAsync(cancellationToken);
 		return list.Value.Count;
 	}
@@ -163,7 +147,7 @@ public class CachingCollectionRepository<T>(
 			}
 		}
 
-		var newResult = await inner.RawStreamAsync(cancellationToken);
+		await using var newResult = await inner.RawStreamAsync(cancellationToken);
 		if (newResult == null)
 		{
 			_cacheEntry = null;
@@ -193,7 +177,7 @@ public class CachingCollectionRepository<T>(
 			};
 		}
 
-		return newResult;
+		return new(binaryData.ToStream(), newResult.Value.LastModified, newResult.Value.ETag, newResult.Value.Encoding);
 	}
 
 	public async Task ClearAsync(CancellationToken cancellationToken)
@@ -217,6 +201,59 @@ public class CachingCollectionRepository<T>(
 
 		public string? ContentEncoding { get; set; }
 	}
+
+
+	#region Forwarded writes
+
+	// forwarded instead of going through ApplyAsync, so the inner implementations are used (e.g. appends, custom comparers)
+
+	public async Task<bool> AddAsync(T value, CancellationToken cancellationToken)
+	{
+		var added = await inner.AddAsync(value, cancellationToken);
+		_cacheEntry = null;
+		return added;
+	}
+
+	public async Task AddRangeAsync(IReadOnlyCollection<T> value, CancellationToken cancellationToken)
+	{
+		await inner.AddRangeAsync(value, cancellationToken);
+		_cacheEntry = null;
+	}
+
+	public async Task AddOrUpdateAsync(T value, Func<T, T> update, CancellationToken cancellationToken)
+	{
+		await inner.AddOrUpdateAsync(value, update, cancellationToken);
+		_cacheEntry = null;
+	}
+
+	public async Task<bool> UpdateAsync(Func<T, bool> predicate, Func<T, T> update, CancellationToken cancellationToken)
+	{
+		var updated = await inner.UpdateAsync(predicate, update, cancellationToken);
+		_cacheEntry = null;
+		return updated;
+	}
+
+	public async Task<bool> DeleteAsync(T value, CancellationToken cancellationToken)
+	{
+		var deleted = await inner.DeleteAsync(value, cancellationToken);
+		_cacheEntry = null;
+		return deleted;
+	}
+
+	public async Task<bool> DeleteAsync(Func<T, bool> predicate, CancellationToken cancellationToken)
+	{
+		var deleted = await inner.DeleteAsync(predicate, cancellationToken);
+		_cacheEntry = null;
+		return deleted;
+	}
+
+	public async Task StoreAsync(IImmutableList<T> items, CancellationToken cancellationToken)
+	{
+		await inner.StoreAsync(items, cancellationToken);
+		_cacheEntry = null;
+	}
+
+	#endregion
 }
 
 public static partial class Extensions

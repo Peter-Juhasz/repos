@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Time.Testing;
+﻿using Microsoft.Extensions.Time.Testing;
 using PeterJuhasz.Repositories.Blobs;
 using PeterJuhasz.Repositories.InMemory;
 
@@ -231,7 +231,7 @@ public class InMemoryAppendBlobTests(TestContext testContext)
 		await repository.AddAsync(new Item("b"), CT);
 
 		var result = await repository.ListWithVersionAsync(CT);
-		Assert.AreSequenceEqual(new[] { new Item("a"), new Item("b") }, result.Value.ToArray());
+		Assert.AreSequenceEqual([new Item("a"), new Item("b")], result.Value.ToArray());
 		Assert.AreEqual((await blob.GetInfoAsync(CT))?.ConcurrencyToken, result.ETag);
 	}
 

@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Time.Testing;
+﻿using Microsoft.Extensions.Time.Testing;
 using PeterJuhasz.Repositories.Blobs;
 using PeterJuhasz.Repositories.InMemory;
 using System.Text.RegularExpressions;
@@ -166,7 +166,7 @@ public class InMemoryBlobPartitionTests(TestContext testContext)
 		partition.GetBlob("a.json");
 		await WriteAsync(partition.GetBlob("b.json"));
 
-		Assert.AreSequenceEqual(new[] { "b.json" }, await GetBlobNamesAsync(partition));
+		Assert.AreSequenceEqual(["b.json"], await GetBlobNamesAsync(partition));
 	}
 
 	[TestMethod]
@@ -177,7 +177,7 @@ public class InMemoryBlobPartitionTests(TestContext testContext)
 		await WriteAsync(partition.GetBlob("a.json"));
 		await WriteAsync(partition.GetBlob("b.json"));
 
-		Assert.AreSequenceEqual(new[] { "a.json", "b.json", "c.json" }, await GetBlobNamesAsync(partition));
+		Assert.AreSequenceEqual(["a.json", "b.json", "c.json"], await GetBlobNamesAsync(partition));
 	}
 
 	[TestMethod]
@@ -188,8 +188,8 @@ public class InMemoryBlobPartitionTests(TestContext testContext)
 		await WriteAsync(partition.GetSubPartition("a").GetBlob("item.json"));
 		await WriteAsync(partition.GetSubPartition("a").GetSubPartition("b").GetBlob("item.json"));
 
-		Assert.AreSequenceEqual(new[] { "a/b/item.json", "a/item.json", "root.json" }, await GetBlobNamesAsync(partition));
-		Assert.AreSequenceEqual(new[] { "a/b/item.json", "a/item.json" }, await GetBlobNamesAsync(partition.GetSubPartition("a")));
+		Assert.AreSequenceEqual(["a/b/item.json", "a/item.json", "root.json"], await GetBlobNamesAsync(partition));
+		Assert.AreSequenceEqual(["a/b/item.json", "a/item.json"], await GetBlobNamesAsync(partition.GetSubPartition("a")));
 	}
 
 	[TestMethod]
@@ -200,7 +200,7 @@ public class InMemoryBlobPartitionTests(TestContext testContext)
 		await WriteAsync(partition.GetSubPartition("ab").GetBlob("item.json"));
 		await WriteAsync(partition.GetBlob("a.json"));
 
-		Assert.AreSequenceEqual(new[] { "a/item.json" }, await GetBlobNamesAsync(partition.GetSubPartition("a")));
+		Assert.AreSequenceEqual(["a/item.json"], await GetBlobNamesAsync(partition.GetSubPartition("a")));
 	}
 
 	[TestMethod]
@@ -271,7 +271,7 @@ public class InMemoryBlobPartitionTests(TestContext testContext)
 
 		await partition.GetSubPartition("a").ClearAsync(CT);
 
-		Assert.AreSequenceEqual(new[] { "ab/item.json", "root.json" }, await GetBlobNamesAsync(partition));
+		Assert.AreSequenceEqual(["ab/item.json", "root.json"], await GetBlobNamesAsync(partition));
 	}
 
 	[TestMethod]
@@ -298,6 +298,6 @@ public class InMemoryBlobPartitionTests(TestContext testContext)
 		await partition.GetAppendBlob("log.jsonl").AsJsonLineCollectionRepository<string>(System.Text.Json.JsonSerializerOptions.Web).AddAsync("b", CT);
 
 		var items = await partition.GetAppendBlob("log.jsonl").AsJsonLineCollectionRepository<string>(System.Text.Json.JsonSerializerOptions.Web).ListAsync(CT);
-		Assert.AreSequenceEqual(new[] { "a", "b" }, items);
+		Assert.AreSequenceEqual(["a", "b"], items);
 	}
 }

@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Time.Testing;
+﻿using Microsoft.Extensions.Time.Testing;
 using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Blobs;
 using PeterJuhasz.Repositories.InMemory;
@@ -60,7 +60,7 @@ public class BlobSortedNameSetRepositoryTests(TestContext testContext)
 		Assert.IsTrue(await repository.AddAsync("apple", CT));
 
 		Assert.IsTrue(await repository.ContainsAsync("apple", CT));
-		Assert.AreSequenceEqual(new[] { "apple" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["apple"], await ListAsync(repository));
 	}
 
 	[TestMethod]
@@ -70,7 +70,7 @@ public class BlobSortedNameSetRepositoryTests(TestContext testContext)
 
 		await repository.AddAsync("apple", CT);
 
-		Assert.AreSequenceEqual(new[] { Partition.GetBlob("3|apple").Name }, await Partition.GetBlobs(CT).Select(b => b.Name).ToListAsync(CT));
+		Assert.AreSequenceEqual([Partition.GetBlob("3|apple").Name], await Partition.GetBlobs(CT).Select(b => b.Name).ToListAsync(CT));
 		var result = await Partition.GetBlob("3|apple").ReadAsync(CT);
 		Assert.IsNotNull(result);
 		Assert.IsTrue(result.Value.IsEmpty);
@@ -84,7 +84,7 @@ public class BlobSortedNameSetRepositoryTests(TestContext testContext)
 		await repository.AddAsync("apple", CT);
 
 		Assert.IsTrue(await Partition.GetBlob("3_apple").ExistsAsync(CT));
-		Assert.AreSequenceEqual(new[] { "apple" }, await repository.ListAsync(CT).ToListAsync(CT));
+		Assert.AreSequenceEqual(["apple"], await repository.ListAsync(CT).ToListAsync(CT));
 	}
 
 	[TestMethod]
@@ -95,7 +95,7 @@ public class BlobSortedNameSetRepositoryTests(TestContext testContext)
 
 		Assert.IsFalse(await repository.AddAsync("apple", CT));
 
-		Assert.AreSequenceEqual(new[] { "apple" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["apple"], await ListAsync(repository));
 	}
 
 	[TestMethod]
@@ -114,7 +114,7 @@ public class BlobSortedNameSetRepositoryTests(TestContext testContext)
 		await repository.AddAsync("a|b", CT);
 
 		Assert.IsTrue(await repository.ContainsAsync("a|b", CT));
-		Assert.AreSequenceEqual(new[] { "a|b" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["a|b"], await ListAsync(repository));
 	}
 
 	[TestMethod]
@@ -125,7 +125,7 @@ public class BlobSortedNameSetRepositoryTests(TestContext testContext)
 		await repository.AddAsync("apple", CT);
 
 		Assert.IsTrue(await Partition.GetBlob("|apple").ExistsAsync(CT));
-		Assert.AreSequenceEqual(new[] { "apple" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["apple"], await ListAsync(repository));
 	}
 
 	[TestMethod]
@@ -151,7 +151,7 @@ public class BlobSortedNameSetRepositoryTests(TestContext testContext)
 		var repository = CreateRepository();
 		await repository.AddRangeAsync(["apple", "banana", "cherry"], CT);
 
-		Assert.AreSequenceEqual(new[] { "banana", "cherry", "apple" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["banana", "cherry", "apple"], await ListAsync(repository));
 	}
 
 	[TestMethod]
@@ -160,7 +160,7 @@ public class BlobSortedNameSetRepositoryTests(TestContext testContext)
 		var repository = CreateRepository(sortKeySelector: _ => "1");
 		await repository.AddRangeAsync(["c", "a", "b"], CT);
 
-		Assert.AreSequenceEqual(new[] { "a", "b", "c" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["a", "b", "c"], await ListAsync(repository));
 	}
 
 	[TestMethod]
@@ -169,7 +169,7 @@ public class BlobSortedNameSetRepositoryTests(TestContext testContext)
 		var repository = CreateRepository(Partition.GetSubPartition("x").GetSubPartition("y"));
 		await repository.AddRangeAsync(["apple", "banana"], CT);
 
-		Assert.AreSequenceEqual(new[] { "banana", "apple" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["banana", "apple"], await ListAsync(repository));
 		Assert.IsTrue(await Partition.GetBlob("x/y/1|banana").ExistsAsync(CT));
 	}
 
@@ -193,7 +193,7 @@ public class BlobSortedNameSetRepositoryTests(TestContext testContext)
 		Assert.IsTrue(await repository.DeleteAsync("apple", CT));
 
 		Assert.IsFalse(await repository.ContainsAsync("apple", CT));
-		Assert.AreSequenceEqual(new[] { "banana" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["banana"], await ListAsync(repository));
 	}
 
 	[TestMethod]
@@ -228,6 +228,6 @@ public class BlobSortedNameSetRepositoryTests(TestContext testContext)
 		await repository1.ClearAsync(CT);
 
 		Assert.IsEmpty(await ListAsync(repository1));
-		Assert.AreSequenceEqual(new[] { "banana" }, await ListAsync(repository2));
+		Assert.AreSequenceEqual(["banana"], await ListAsync(repository2));
 	}
 }

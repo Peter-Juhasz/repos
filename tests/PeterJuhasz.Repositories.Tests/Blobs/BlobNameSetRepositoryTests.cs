@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Time.Testing;
+﻿using Microsoft.Extensions.Time.Testing;
 using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Blobs;
 using PeterJuhasz.Repositories.FileSystem;
@@ -51,7 +51,7 @@ public class BlobNameSetRepositoryTests(TestContext testContext)
 		Assert.IsTrue(await repository.AddAsync("a", CT));
 
 		Assert.IsTrue(await repository.ContainsAsync("a", CT));
-		Assert.AreSequenceEqual(new[] { "a" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["a"], await ListAsync(repository));
 	}
 
 	[TestMethod]
@@ -74,7 +74,7 @@ public class BlobNameSetRepositoryTests(TestContext testContext)
 
 		Assert.IsFalse(await repository.AddAsync("a", CT));
 
-		Assert.AreSequenceEqual(new[] { "a" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["a"], await ListAsync(repository));
 	}
 
 	[TestMethod]
@@ -104,7 +104,7 @@ public class BlobNameSetRepositoryTests(TestContext testContext)
 		var added = await repository.AddRangeAsync(["a", "b", "c"], CT);
 
 		Assert.IsTrue(added.SetEquals(["b", "c"]));
-		Assert.AreSequenceEqual(new[] { "a", "b", "c" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["a", "b", "c"], await ListAsync(repository));
 	}
 
 	// ContainsAsync
@@ -128,7 +128,7 @@ public class BlobNameSetRepositoryTests(TestContext testContext)
 		var repository = CreateRepository();
 		await repository.AddRangeAsync(["c", "a", "b"], CT);
 
-		Assert.AreSequenceEqual(new[] { "a", "b", "c" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["a", "b", "c"], await ListAsync(repository));
 	}
 
 	[TestMethod]
@@ -138,7 +138,7 @@ public class BlobNameSetRepositoryTests(TestContext testContext)
 		var repository = CreateRepository(partition);
 		await repository.AddRangeAsync(["a", "b"], CT);
 
-		Assert.AreSequenceEqual(new[] { "a", "b" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["a", "b"], await ListAsync(repository));
 		Assert.IsTrue(await Partition.GetBlob("x/y/a").ExistsAsync(CT));
 	}
 
@@ -151,8 +151,8 @@ public class BlobNameSetRepositoryTests(TestContext testContext)
 		await repository1.AddAsync("a", CT);
 		await repository2.AddAsync("b", CT);
 
-		Assert.AreSequenceEqual(new[] { "a" }, await ListAsync(repository1));
-		Assert.AreSequenceEqual(new[] { "b" }, await ListAsync(repository2));
+		Assert.AreSequenceEqual(["a"], await ListAsync(repository1));
+		Assert.AreSequenceEqual(["b"], await ListAsync(repository2));
 		Assert.IsFalse(await repository1.ContainsAsync("b", CT));
 	}
 
@@ -167,7 +167,7 @@ public class BlobNameSetRepositoryTests(TestContext testContext)
 		Assert.IsTrue(await repository.DeleteAsync("a", CT));
 
 		Assert.IsFalse(await repository.ContainsAsync("a", CT));
-		Assert.AreSequenceEqual(new[] { "b" }, await ListAsync(repository));
+		Assert.AreSequenceEqual(["b"], await ListAsync(repository));
 	}
 
 	[TestMethod]
@@ -213,7 +213,7 @@ public class BlobNameSetRepositoryTests(TestContext testContext)
 		await repository1.ClearAsync(CT);
 
 		Assert.IsEmpty(await ListAsync(repository1));
-		Assert.AreSequenceEqual(new[] { "b" }, await ListAsync(repository2));
+		Assert.AreSequenceEqual(["b"], await ListAsync(repository2));
 	}
 }
 
@@ -241,11 +241,11 @@ public class BlobNameStringSetTests(TestContext testContext)
 		Assert.IsTrue(await repository.AddAsync("a", CT));
 		Assert.IsFalse(await repository.AddAsync("a", CT));
 		Assert.IsTrue(await repository.ContainsAsync("a", CT));
-		Assert.AreSequenceEqual(new[] { "a", "b" }, await repository.ListAsync(CT).ToListAsync(CT));
+		Assert.AreSequenceEqual(["a", "b"], await repository.ListAsync(CT).ToListAsync(CT));
 
 		Assert.IsTrue(await repository.DeleteAsync("a", CT));
 		Assert.IsFalse(await repository.DeleteAsync("a", CT));
-		Assert.AreSequenceEqual(new[] { "b" }, await repository.ListAsync(CT).ToListAsync(CT));
+		Assert.AreSequenceEqual(["b"], await repository.ListAsync(CT).ToListAsync(CT));
 
 		await repository.ClearAsync(CT);
 		Assert.IsEmpty(await repository.ListAsync(CT).ToListAsync(CT));
@@ -259,7 +259,7 @@ public class BlobNameStringSetTests(TestContext testContext)
 		await repository.AddAsync("árvíztűrő", CT);
 
 		Assert.IsTrue(await repository.ContainsAsync("árvíztűrő", CT));
-		Assert.AreSequenceEqual(new[] { "árvíztűrő" }, await repository.ListAsync(CT).ToListAsync(CT));
+		Assert.AreSequenceEqual(["árvíztűrő"], await repository.ListAsync(CT).ToListAsync(CT));
 	}
 
 	[TestMethod]
@@ -270,6 +270,6 @@ public class BlobNameStringSetTests(TestContext testContext)
 
 		await repository.AddAsync("a", CT);
 
-		Assert.AreSequenceEqual(new[] { "a" }, await repository.ListAsync(CT).ToListAsync(CT));
+		Assert.AreSequenceEqual(["a"], await repository.ListAsync(CT).ToListAsync(CT));
 	}
 }

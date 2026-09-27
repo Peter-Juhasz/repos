@@ -1,4 +1,4 @@
-using PeterJuhasz.Repositories.AzureStorage;
+﻿using PeterJuhasz.Repositories.AzureStorage;
 using PeterJuhasz.Repositories.Blobs;
 
 namespace PeterJuhasz.Repositories.Tests.AzureStorage;
@@ -77,6 +77,6 @@ public sealed class AzureBlobPartitionTests(TestContext testContext) : IAsyncDis
 
 		await root.GetSubPartition("a").ClearAsync(CT);
 
-		Assert.AreSequenceEqual(new[] { root.GetBlob("ab/item.bin").Name, root.GetBlob("root.bin").Name }, await GetBlobNamesAsync(root));
+		Assert.AreSequenceEqual([root.GetBlob("ab/item.bin").Name, root.GetBlob("root.bin").Name], await GetBlobNamesAsync(root));
 	}
 }

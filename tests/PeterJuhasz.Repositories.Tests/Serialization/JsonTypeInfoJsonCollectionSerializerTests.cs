@@ -1,4 +1,4 @@
-using PeterJuhasz.Repositories.Serialization;
+﻿using PeterJuhasz.Repositories.Serialization;
 using PeterJuhasz.Repositories.Serialization.Json;
 using System.Buffers;
 using System.Text;
@@ -133,6 +133,6 @@ public class JsonTypeInfoJsonCollectionSerializerTests(TestContext testContext)
 
 		var result = await Serializer.DeserializeAsyncEnumerable(stream, CT).ToListAsync(CT);
 
-		Assert.AreSequenceEqual(new[] { Items[0] }, result);
+		Assert.AreSequenceEqual([Items[0]], result);
 	}
 }

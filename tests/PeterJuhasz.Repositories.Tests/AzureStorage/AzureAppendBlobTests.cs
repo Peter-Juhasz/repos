@@ -1,4 +1,4 @@
-using Azure.Storage.Blobs.Specialized;
+﻿using Azure.Storage.Blobs.Specialized;
 using PeterJuhasz.Repositories.AzureStorage;
 using PeterJuhasz.Repositories.Blobs;
 
@@ -256,7 +256,7 @@ public sealed class AzureAppendBlobTests(TestContext testContext) : IAsyncDispos
 		await repository.AddAsync(new Item("b"), CT);
 
 		var result = await repository.ListWithVersionAsync(CT);
-		Assert.AreSequenceEqual(new[] { new Item("a"), new Item("b") }, result.Value.ToArray());
+		Assert.AreSequenceEqual([new Item("a"), new Item("b")], result.Value.ToArray());
 		Assert.AreEqual((await blob.GetInfoAsync(CT))?.ConcurrencyToken, result.ETag);
 	}
 

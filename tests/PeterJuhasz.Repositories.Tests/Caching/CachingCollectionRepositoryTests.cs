@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Time.Testing;
+﻿using Microsoft.Extensions.Time.Testing;
 using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Blobs;
 using PeterJuhasz.Repositories.Caching;
@@ -112,7 +112,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		await Source.StoreAsync([A], CT);
 
-		Assert.AreSequenceEqual(new[] { A }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A], await repository.ListAsync(CT));
 		Assert.AreEqual(2, Inner.ListCalls);
 	}
 
@@ -150,7 +150,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		var result = await repository.ListWithVersionAsync(CT);
 
-		Assert.AreSequenceEqual(new[] { A, B }, result.Value);
+		Assert.AreSequenceEqual([A, B], result.Value);
 		Assert.AreEqual(await Source.GetVersionAsync(CT), result.ETag);
 		Assert.AreEqual(1, Inner.ListCalls);
 	}
@@ -179,7 +179,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		await Source.StoreAsync([B], CT);
 
-		Assert.AreSequenceEqual(new[] { A }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -191,7 +191,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		await repository.ListAsync(CT);
 
-		Assert.AreSequenceEqual(new[] { A, B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B], await repository.ListAsync(CT));
 		Assert.AreEqual(1, Inner.ListCalls);
 	}
 
@@ -236,7 +236,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		Assert.AreEqual(3, await repository.CountAsync(CT));
 
-		Assert.AreSequenceEqual(new[] { A, B, C }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B, C], await repository.ListAsync(CT));
 		Assert.AreEqual(1, Inner.ListCalls);
 	}
 
@@ -246,7 +246,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 		var repository = CreateRepository();
 		await Source.StoreAsync([A, B], CT);
 
-		Assert.AreSequenceEqual(new[] { A, B }, await repository.AsAsyncEnumerableAsync(CT).ToListAsync(CT));
+		Assert.AreSequenceEqual([A, B], await repository.AsAsyncEnumerableAsync(CT).ToListAsync(CT));
 		Assert.IsTrue(await repository.AnyAsync(i => i.Name == "b", CT));
 		Assert.AreEqual(1, await repository.CountAsync(i => i.Count > 1, CT));
 		Assert.AreEqual(B, await repository.GetOrDefaultAsync(i => i.Name == "b", CT));
@@ -308,7 +308,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		await ReadRawStreamAsync(repository);
 
-		Assert.AreSequenceEqual(new[] { A, B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B], await repository.ListAsync(CT));
 		Assert.AreEqual(1, Inner.ListCalls);
 	}
 
@@ -351,7 +351,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		var result = await repository.ListWithVersionAsync(CT);
 
-		Assert.AreSequenceEqual(new[] { B, C }, result.Value);
+		Assert.AreSequenceEqual([B, C], result.Value);
 		Assert.AreEqual(await Source.GetVersionAsync(CT), result.ETag);
 		Assert.AreEqual(2, Inner.ListCalls);
 
@@ -395,7 +395,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		await repository.GetVersionAsync(CT);
 
-		Assert.AreSequenceEqual(new[] { A }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A], await repository.ListAsync(CT));
 		Assert.AreEqual(1, Inner.ListCalls);
 	}
 
@@ -409,7 +409,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		await repository.GetVersionAsync(CT);
 
-		Assert.AreSequenceEqual(new[] { B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([B], await repository.ListAsync(CT));
 		Assert.AreEqual(2, Inner.ListCalls);
 	}
 
@@ -479,7 +479,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		_time.Advance(Expiration - TimeSpan.FromTicks(1));
 
-		Assert.AreSequenceEqual(new[] { A }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A], await repository.ListAsync(CT));
 		Assert.AreEqual(1, Inner.ListCalls);
 	}
 
@@ -493,7 +493,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		_time.Advance(Expiration);
 
-		Assert.AreSequenceEqual(new[] { B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([B], await repository.ListAsync(CT));
 		Assert.AreEqual(2, Inner.ListCalls);
 	}
 
@@ -508,7 +508,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		_time.Advance(Expiration - TimeSpan.FromTicks(1));
 
-		Assert.AreSequenceEqual(new[] { A }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A], await repository.ListAsync(CT));
 		Assert.AreEqual(2, Inner.ListCalls);
 	}
 
@@ -551,7 +551,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 		await repository.AddAsync(A, CT);
 
 		Assert.AreEqual(1, Inner.ApplyCalls);
-		Assert.AreSequenceEqual(new[] { A }, await Source.ListAsync(CT));
+		Assert.AreSequenceEqual([A], await Source.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -563,7 +563,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		await repository.AddAsync(B, CT);
 
-		Assert.AreSequenceEqual(new[] { A, B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B], await repository.ListAsync(CT));
 		Assert.AreEqual(await Source.GetVersionAsync(CT), await repository.GetVersionAsync(CT));
 	}
 
@@ -576,7 +576,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		await repository.AddAsync(B, CT);
 
-		Assert.AreSequenceEqual(new[] { A, B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -605,7 +605,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 
 		Assert.IsTrue(await repository.DeleteAsync(new Item("a", 99), CT));
 
-		Assert.AreSequenceEqual(new[] { B }, await Source.ListAsync(CT));
+		Assert.AreSequenceEqual([B], await Source.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -618,7 +618,7 @@ public class CachingCollectionRepositoryTests(TestContext testContext)
 		await repository.AddAsync(A, CT);
 		await repository.AddRangeAsync([B, C], CT);
 
-		Assert.AreSequenceEqual(new[] { A, B, C }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B, C], await repository.ListAsync(CT));
 	}
 
 

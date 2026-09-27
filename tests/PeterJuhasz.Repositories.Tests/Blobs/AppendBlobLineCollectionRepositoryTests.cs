@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Time.Testing;
+﻿using Microsoft.Extensions.Time.Testing;
 using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Blobs;
 using PeterJuhasz.Repositories.InMemory;
@@ -89,7 +89,7 @@ public class AppendBlobLineCollectionRepositoryTests(TestContext testContext)
 
 		var result = await repository.ListWithVersionAsync(CT);
 
-		Assert.AreSequenceEqual(new[] { A, B }, result.Value);
+		Assert.AreSequenceEqual([A, B], result.Value);
 		Assert.AreEqual(token, result.ETag);
 		Assert.AreEqual(token, await repository.GetVersionAsync(CT));
 	}
@@ -113,7 +113,7 @@ public class AppendBlobLineCollectionRepositoryTests(TestContext testContext)
 		var repository = CreateRepository();
 		await AppendBlobAsync(ALine.Replace("\n", "\r\n") + BLine.Replace("\n", "\r\n"));
 
-		Assert.AreSequenceEqual(new[] { A, B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -122,7 +122,7 @@ public class AppendBlobLineCollectionRepositoryTests(TestContext testContext)
 		var repository = CreateRepository();
 		await AppendBlobAsync("﻿" + ALine + BLine);
 
-		Assert.AreSequenceEqual(new[] { A, B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -131,7 +131,7 @@ public class AppendBlobLineCollectionRepositoryTests(TestContext testContext)
 		var repository = CreateRepository();
 		await AppendBlobAsync(ALine + BLine.TrimEnd('\n'));
 
-		Assert.AreSequenceEqual(new[] { A, B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -140,7 +140,7 @@ public class AppendBlobLineCollectionRepositoryTests(TestContext testContext)
 		var repository = CreateRepository();
 		await AppendBlobAsync(ALine + "\n" + BLine);
 
-		Assert.AreSequenceEqual(new[] { A, B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -168,7 +168,7 @@ public class AppendBlobLineCollectionRepositoryTests(TestContext testContext)
 		var repository = CreateRepository();
 		await AppendBlobAsync(ALine + BLine);
 
-		Assert.AreSequenceEqual(new[] { A, B }, await repository.AsAsyncEnumerableAsync(CT).ToListAsync(CT));
+		Assert.AreSequenceEqual([A, B], await repository.AsAsyncEnumerableAsync(CT).ToListAsync(CT));
 	}
 
 	[TestMethod]
@@ -257,7 +257,7 @@ public class AppendBlobLineCollectionRepositoryTests(TestContext testContext)
 
 		await repository.AddAsync(A, CT);
 
-		Assert.AreSequenceEqual(new[] { A, A }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, A], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -269,7 +269,7 @@ public class AppendBlobLineCollectionRepositoryTests(TestContext testContext)
 		await repository.AddAsync(item, CT);
 		await repository.AddAsync(B, CT);
 
-		Assert.AreSequenceEqual(new[] { item, B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([item, B], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -290,7 +290,7 @@ public class AppendBlobLineCollectionRepositoryTests(TestContext testContext)
 
 		await repository.AddRangeAsync([B, C], CT);
 
-		Assert.AreSequenceEqual(new[] { A, B, C }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B, C], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -347,7 +347,7 @@ public class AppendBlobLineCollectionRepositoryTests(TestContext testContext)
 
 		await repository.AddAsync(B, CT);
 
-		Assert.AreSequenceEqual(new[] { B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([B], await repository.ListAsync(CT));
 	}
 
 	// Unsupported mutations
@@ -372,6 +372,6 @@ public class AppendBlobLineCollectionRepositoryTests(TestContext testContext)
 		await Assert.ThrowsExactlyAsync<NotSupportedException>(() => repository.DeleteAsync(A, CT));
 		await Assert.ThrowsExactlyAsync<NotSupportedException>(() => repository.DeleteAsync(_ => true, CT));
 
-		Assert.AreSequenceEqual(new[] { A }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A], await repository.ListAsync(CT));
 	}
 }

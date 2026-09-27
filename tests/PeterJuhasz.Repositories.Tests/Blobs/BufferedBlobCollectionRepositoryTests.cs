@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Time.Testing;
+﻿using Microsoft.Extensions.Time.Testing;
 using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Blobs;
 using PeterJuhasz.Repositories.InMemory;
@@ -95,7 +95,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 
 		var result = await repository.ListWithVersionAsync(CT);
 
-		Assert.AreSequenceEqual(new[] { A, B }, result.Value);
+		Assert.AreSequenceEqual([A, B], result.Value);
 		Assert.AreEqual(token, result.ETag);
 		Assert.AreEqual(token, await repository.GetVersionAsync(CT));
 	}
@@ -118,7 +118,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 		var repository = CreateRepository();
 		await WriteBlobAsync("﻿" + ABJson);
 
-		Assert.AreSequenceEqual(new[] { A, B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -136,7 +136,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 		var repository = CreateRepository();
 		await WriteBlobAsync(ABJson);
 
-		Assert.AreSequenceEqual(new[] { A, B }, await repository.AsAsyncEnumerableAsync(CT).ToListAsync(CT));
+		Assert.AreSequenceEqual([A, B], await repository.AsAsyncEnumerableAsync(CT).ToListAsync(CT));
 	}
 
 	[TestMethod]
@@ -205,7 +205,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 
 		await repository.AddAsync(A, CT);
 
-		Assert.AreSequenceEqual(new[] { A, A }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, A], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -226,7 +226,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 
 		await repository.AddRangeAsync([B, C], CT);
 
-		Assert.AreSequenceEqual(new[] { A, B, C }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B, C], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -259,7 +259,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 
 		await repository.StoreAsync([C], CT);
 
-		Assert.AreSequenceEqual(new[] { C }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([C], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -282,7 +282,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 
 		Assert.IsTrue(await repository.UpdateAsync(i => i.Name == "b", i => i with { Count = 20 }, CT));
 
-		Assert.AreSequenceEqual(new[] { A, B with { Count = 20 } }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B with { Count = 20 }], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -327,7 +327,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 
 		await repository.AddOrUpdateAsync(A, i => i with { Count = 10 }, CT);
 
-		Assert.AreSequenceEqual(new[] { A with { Count = 10 }, B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A with { Count = 10 }, B], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -337,7 +337,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 
 		await repository.AddOrUpdateAsync(A, i => i with { Count = 10 }, CT);
 
-		Assert.AreSequenceEqual(new[] { A }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -348,7 +348,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 
 		await repository.AddOrUpdateAsync(C, i => i with { Count = 30 }, CT);
 
-		Assert.AreSequenceEqual(new[] { A, B, C }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B, C], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -373,7 +373,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 
 		Assert.IsTrue(await repository.DeleteAsync(A, CT));
 
-		Assert.AreSequenceEqual(new[] { B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([B], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -396,7 +396,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 
 		Assert.IsTrue(await repository.DeleteAsync(new Item("a", 99), CT));
 
-		Assert.AreSequenceEqual(new[] { B }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([B], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -407,7 +407,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 
 		Assert.IsTrue(await repository.DeleteAsync(i => i.Count >= 2, CT));
 
-		Assert.AreSequenceEqual(new[] { A }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -467,7 +467,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 			return [A];
 		}, CT);
 
-		Assert.AreSequenceEqual(new[] { A }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -479,11 +479,11 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 		await repository.ApplyAsync(current =>
 		{
 			Assert.IsNotNull(current);
-			Assert.AreSequenceEqual(new[] { A, B }, current);
+			Assert.AreSequenceEqual([A, B], current);
 			return current.Add(C);
 		}, CT);
 
-		Assert.AreSequenceEqual(new[] { A, B, C }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B, C], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -531,7 +531,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 		Assert.IsNotNull(info);
 		Assert.IsNotNull(info.Metadata);
 		Assert.AreEqual("b", info.Metadata["a"]);
-		Assert.AreSequenceEqual(new[] { A, B, C }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B, C], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -553,7 +553,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 		}, CT);
 
 		Assert.AreEqual(2, calls);
-		Assert.AreSequenceEqual(new[] { A, B, C }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([A, B, C], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]
@@ -574,7 +574,7 @@ public class BufferedBlobCollectionRepositoryTests(TestContext testContext)
 		}, CT);
 
 		Assert.AreEqual(2, calls);
-		Assert.AreSequenceEqual(new[] { C }, await repository.ListAsync(CT));
+		Assert.AreSequenceEqual([C], await repository.ListAsync(CT));
 	}
 
 	[TestMethod]

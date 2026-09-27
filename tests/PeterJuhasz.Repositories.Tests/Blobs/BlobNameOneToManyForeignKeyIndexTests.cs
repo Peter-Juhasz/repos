@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Time.Testing;
+﻿using Microsoft.Extensions.Time.Testing;
 using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Blobs;
 using PeterJuhasz.Repositories.InMemory;
@@ -47,7 +47,7 @@ public class BlobNameOneToManyForeignKeyIndexTests(TestContext testContext)
 		await index.AddAsync("pk", "fk", CT);
 
 		Assert.IsTrue(await index.ContainsAsync("pk", "fk", CT));
-		Assert.AreSequenceEqual(new[] { "fk" }, await ListAsync(index, "pk"));
+		Assert.AreSequenceEqual(["fk"], await ListAsync(index, "pk"));
 	}
 
 	[TestMethod]
@@ -80,7 +80,7 @@ public class BlobNameOneToManyForeignKeyIndexTests(TestContext testContext)
 		await index.AddAsync("pk", "a", CT);
 		await index.AddAsync("pk", "b", CT);
 
-		Assert.AreSequenceEqual(new[] { "a", "b", "c" }, await ListAsync(index, "pk"));
+		Assert.AreSequenceEqual(["a", "b", "c"], await ListAsync(index, "pk"));
 	}
 
 	[TestMethod]
@@ -91,8 +91,8 @@ public class BlobNameOneToManyForeignKeyIndexTests(TestContext testContext)
 		await index.AddAsync("pk1", "a", CT);
 		await index.AddAsync("pk2", "b", CT);
 
-		Assert.AreSequenceEqual(new[] { "a" }, await ListAsync(index, "pk1"));
-		Assert.AreSequenceEqual(new[] { "b" }, await ListAsync(index, "pk2"));
+		Assert.AreSequenceEqual(["a"], await ListAsync(index, "pk1"));
+		Assert.AreSequenceEqual(["b"], await ListAsync(index, "pk2"));
 		Assert.IsFalse(await index.ContainsAsync("pk1", "b", CT));
 	}
 
@@ -104,7 +104,7 @@ public class BlobNameOneToManyForeignKeyIndexTests(TestContext testContext)
 		await index.AddAsync("pk", "a", CT);
 		await index.AddAsync("pk2", "b", CT);
 
-		Assert.AreSequenceEqual(new[] { "a" }, await ListAsync(index, "pk"));
+		Assert.AreSequenceEqual(["a"], await ListAsync(index, "pk"));
 	}
 
 	[TestMethod]
@@ -139,7 +139,7 @@ public class BlobNameOneToManyForeignKeyIndexTests(TestContext testContext)
 
 		Assert.IsFalse(await index.AddOrUpdateAsync("pk", "fk", CT));
 
-		Assert.AreSequenceEqual(new[] { "fk" }, await ListAsync(index, "pk"));
+		Assert.AreSequenceEqual(["fk"], await ListAsync(index, "pk"));
 	}
 
 	[TestMethod]
@@ -162,7 +162,7 @@ public class BlobNameOneToManyForeignKeyIndexTests(TestContext testContext)
 		await index.AddAsync("group1", "user1", CT);
 		await index.AddAsync("group1", "user2", CT);
 
-		Assert.AreSequenceEqual(new[] { "user1", "user2" }, await ListAsync(index, "group1"));
+		Assert.AreSequenceEqual(["user1", "user2"], await ListAsync(index, "group1"));
 		Assert.IsTrue(await Partition.GetBlob("users/by-group/group1/user1").ExistsAsync(CT));
 	}
 
@@ -178,7 +178,7 @@ public class BlobNameOneToManyForeignKeyIndexTests(TestContext testContext)
 		await index.DeleteAsync("pk", "a", CT);
 
 		Assert.IsFalse(await index.ContainsAsync("pk", "a", CT));
-		Assert.AreSequenceEqual(new[] { "b" }, await ListAsync(index, "pk"));
+		Assert.AreSequenceEqual(["b"], await ListAsync(index, "pk"));
 	}
 
 	[TestMethod]
@@ -212,7 +212,7 @@ public class BlobNameOneToManyForeignKeyIndexTests(TestContext testContext)
 		await index.DeleteAsync("pk", CT);
 
 		Assert.IsEmpty(await ListAsync(index, "pk"));
-		Assert.AreSequenceEqual(new[] { "c" }, await ListAsync(index, "pk2"));
+		Assert.AreSequenceEqual(["c"], await ListAsync(index, "pk2"));
 	}
 
 	[TestMethod]

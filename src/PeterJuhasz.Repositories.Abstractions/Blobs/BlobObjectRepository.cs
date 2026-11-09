@@ -1,12 +1,8 @@
 ﻿using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Caching;
 using PeterJuhasz.Repositories.Serialization;
-using PeterJuhasz.Repositories.Serialization.Json;
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 namespace PeterJuhasz.Repositories.Blobs;
 
@@ -128,16 +124,6 @@ public static partial class Extensions
 
 		public IObjectRepository<string> AsStringObjectRepository(IEqualityComparer<string>? comparer = null) =>
 			new BlobObjectRepository<string>(blob, StringSerializer.Utf8, comparer);
-
-
-		public IObjectRepository<T> AsJsonObjectRepository<T>(JsonSerializerOptions jsonSerializerOptions, IEqualityComparer<T>? comparer = null) where T : class =>
-			new BlobObjectRepository<T>(blob, new JsonSerializerOptionsJsonSerializer<T>(jsonSerializerOptions), comparer);
-
-		public IObjectRepository<T> AsJsonObjectRepository<T>(JsonSerializerContext context, IEqualityComparer<T>? comparer = null) where T : class =>
-			new BlobObjectRepository<T>(blob, new JsonTypeInfoJsonSerializer<T>(context), comparer);
-
-		public IObjectRepository<T> AsJsonObjectRepository<T>(JsonTypeInfo<T> jsonTypeInfo, IEqualityComparer<T>? comparer = null) where T : class =>
-			new BlobObjectRepository<T>(blob, new JsonTypeInfoJsonSerializer<T>(jsonTypeInfo), comparer);
 	}
 
 	extension<T>(IObjectRepository<T> repository) where T : class

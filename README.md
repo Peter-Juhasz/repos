@@ -282,7 +282,7 @@ Use `WaitForEnterAsync` to wait for the lock instead of failing fast.
 
 ### JSON
 
-Pass `JsonSerializerOptions`:
+Objects and collections can be stored as JSON, using the `PeterJuhasz.Repositories.Json` package. Pass `JsonSerializerOptions`:
 
 ```cs
 var repository = blob.AsJsonObjectRepository<Item>(JsonSerializerOptions.Web);
@@ -363,11 +363,11 @@ var container = new BlobServiceClient(connectionString).GetBlobContainerClient("
 IBlobPartition partition = container.GetPartition("users");
 ```
 
-Queues are backed by `QueueClient`:
+Queues are backed by `QueueClient`, messages are serialized by an `ISerializer<T>`:
 
 ```cs
-var queue = new QueueServiceClient(connectionString).GetQueueClient("jobs");
-IStorageQueue<Job> queue = queue.AsJson<Job>();
+var client = new QueueServiceClient(connectionString).GetQueueClient("jobs");
+IStorageQueue<Job> queue = client.AsStorageQueue(new JsonSerializerOptionsJsonSerializer<Job>(JsonSerializerOptions.Web));
 ```
 
 ### File system

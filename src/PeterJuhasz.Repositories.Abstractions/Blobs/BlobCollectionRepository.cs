@@ -1,13 +1,10 @@
 ﻿using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Caching;
 using PeterJuhasz.Repositories.Serialization;
-using PeterJuhasz.Repositories.Serialization.Json;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace PeterJuhasz.Repositories.Blobs;
 
@@ -242,19 +239,6 @@ public static partial class Extensions
 
 		public ICollectionRepository<T> AsStreamingCollectionRepository<T>(ICollectionSerializer<T> serializer, IEqualityComparer<T>? comparer = null) =>
 			new StreamingBlobCollectionRepository<T>(blob, serializer, comparer);
-
-
-		public ICollectionRepository<T> AsJsonCollectionRepository<T>(JsonSerializerOptions jsonSerializerOptions, IEqualityComparer<T>? comparer = null) =>
-			blob.AsCollectionRepository<T>(new JsonSerializerOptionsJsonCollectionSerializer<T>(jsonSerializerOptions), comparer);
-
-		public ICollectionRepository<T> AsJsonCollectionRepository<T>(JsonSerializerContext context, IEqualityComparer<T>? comparer = null) =>
-			blob.AsCollectionRepository<T>(new JsonTypeInfoJsonCollectionSerializer<T>(context), comparer);
-
-		public ICollectionRepository<T> AsStreamingJsonCollectionRepository<T>(JsonSerializerOptions jsonSerializerOptions, IEqualityComparer<T>? comparer = null) =>
-			blob.AsStreamingCollectionRepository<T>(new JsonSerializerOptionsJsonCollectionSerializer<T>(jsonSerializerOptions), comparer);
-
-		public ICollectionRepository<T> AsStreamingJsonCollectionRepository<T>(JsonSerializerContext context, IEqualityComparer<T>? comparer = null) =>
-			blob.AsStreamingCollectionRepository<T>(new JsonTypeInfoJsonCollectionSerializer<T>(context), comparer);
 	}
 
 	extension<T>(ICollectionRepository<T> repository)

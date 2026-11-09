@@ -1,13 +1,9 @@
 ﻿using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Serialization;
-using PeterJuhasz.Repositories.Serialization.Json;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 namespace PeterJuhasz.Repositories.Blobs;
 
@@ -154,15 +150,5 @@ public static partial class Extensions
 	{
 		public ICollectionRepository<T> AsLineCollectionRepository<T>(ISerializer<T> serializer) =>
 			new AppendBlobLineCollectionRepository<T>(blob, serializer);
-
-
-		public ICollectionRepository<T> AsJsonLineCollectionRepository<T>(JsonSerializerOptions jsonSerializerOptions) =>
-			new AppendBlobLineCollectionRepository<T>(blob, new JsonSerializerOptionsJsonSerializer<T>(jsonSerializerOptions));
-
-		public ICollectionRepository<T> AsJsonLineCollectionRepository<T>(JsonTypeInfo<T> context) =>
-			new AppendBlobLineCollectionRepository<T>(blob, new JsonTypeInfoJsonSerializer<T>(context));
-
-		public ICollectionRepository<T> AsJsonLineCollectionRepository<T>(JsonSerializerContext context) =>
-			new AppendBlobLineCollectionRepository<T>(blob, new JsonTypeInfoJsonSerializer<T>(context.GetTypeInfo<T>()));
 	}
 }

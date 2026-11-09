@@ -2,14 +2,15 @@
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using PeterJuhasz.Repositories.Abstractions;
+using PeterJuhasz.Repositories.Serialization;
 using System.Runtime.CompilerServices;
 
 namespace PeterJuhasz.Repositories.AzureStorage;
 
-public class AzureJsonStorageQueue<T>(QueueClient queue) : ICancellableStorageQueue<T, SendReceipt>
+public class AzureStorageQueue<T>(QueueClient queue, ISerializer<T> serializer) : ICancellableStorageQueue<T, SendReceipt>
 {
 	public async ValueTask SendMessageAsync(T value, IStorageQueue<T>.SendOptions<T> options, CancellationToken cancellationToken) =>
-		await queue.SendMessageAsJsonAsync<T>(value, visibilityTimeout: options.ScheduledEnqueueTime, cancellationToken: cancellationToken);
+		await queue.SendMessageAsync(value, serializer, visibilityTimeout: options.ScheduledEnqueueTime, cancellationToken: cancellationToken);
 
 	public async ValueTask SendMessagesAsync(IReadOnlyList<T> values, IStorageQueue<T>.SendOptions<T> options, CancellationToken cancellationToken)
 	{
@@ -28,7 +29,7 @@ public class AzureJsonStorageQueue<T>(QueueClient queue) : ICancellableStorageQu
 		await Task.WhenAll(tasks);
 	}
 	public async ValueTask<SendReceipt> ScheduleMessageAsync(T value, IStorageQueue<T>.SendOptions<T> options, CancellationToken cancellationToken) =>
-		await queue.SendMessageAsJsonAsync(value, visibilityTimeout: options.ScheduledEnqueueTime, cancellationToken: cancellationToken);
+		await queue.SendMessageAsync(value, serializer, visibilityTimeout: options.ScheduledEnqueueTime, cancellationToken: cancellationToken);
 
 	public async ValueTask<IEnumerable<SendReceipt>> ScheduleMessagesAsync(IReadOnlyList<T> values, IStorageQueue<T>.SendOptions<T> options, CancellationToken cancellationToken)
 	{
@@ -108,7 +109,7 @@ public class AzureJsonStorageQueue<T>(QueueClient queue) : ICancellableStorageQu
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 
-				yield return item.Body.ToObjectFromJson<T>(DefaultJsonSerializerOptions.Default)!;
+				yield return serializer.Deserialize(item.Body.ToMemory().Span);
 				await queue.DeleteMessageAsync(item.MessageId, item.PopReceipt, cancellationToken);
 			}
 
@@ -132,6 +133,8 @@ public class AzureJsonStorageQueue<T>(QueueClient queue) : ICancellableStorageQu
 
 public static partial class QueueExtensions
 {
-	public static AzureJsonStorageQueue<T> AsJson<T>(this QueueClient partition) =>
-		new(partition);
+	extension(QueueClient queue)
+	{
+		public AzureStorageQueue<T> AsQueue<T>(ISerializer<T> serializer) => new(queue, serializer);
+	}
 }

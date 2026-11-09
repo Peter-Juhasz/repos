@@ -1,10 +1,10 @@
 ﻿using System.Buffers;
 
-namespace PeterJuhasz.Repositories.Serialization.Json;
+namespace PeterJuhasz.Repositories.Serialization;
 
-internal static class Utf8Bom
+public static class Utf8Bom
 {
-	private static ReadOnlySpan<byte> Preamble => [0xEF, 0xBB, 0xBF];
+	public static ReadOnlySpan<byte> Preamble => [0xEF, 0xBB, 0xBF];
 
 	public static ReadOnlySpan<byte> Skip(ReadOnlySpan<byte> buffer) => buffer.StartsWith(Preamble) ? buffer[Preamble.Length..] : buffer;
 

@@ -153,6 +153,30 @@ public class YamlSerializerOptionsYamlCollectionSerializerTests(TestContext test
 	}
 
 	[TestMethod]
+	public void Deserialize_Span_SkipsUtf8Bom()
+	{
+		Assert.IsTrue(Serializer.Deserialize([.. Utf8Bom.Preamble, .. Encoding.UTF8.GetBytes(ItemsYaml)], out var result));
+		Assert.AreSequenceEqual(Items, result.ToArray());
+	}
+
+	[TestMethod]
+	public void Deserialize_SegmentedSequence_SkipsUtf8Bom()
+	{
+		Assert.IsTrue(Serializer.Deserialize(SerializerTestHelpers.Segmented([.. Utf8Bom.Preamble, .. Encoding.UTF8.GetBytes(ItemsYaml)]), out var result));
+		Assert.AreSequenceEqual(Items, result.ToArray());
+	}
+
+	[TestMethod]
+	public async Task DeserializeAsync_SkipsUtf8Bom()
+	{
+		using var stream = new MemoryStream([.. Utf8Bom.Preamble, .. Encoding.UTF8.GetBytes(ItemsYaml)]);
+
+		var result = await Serializer.DeserializeAsync(stream, CT);
+
+		Assert.AreSequenceEqual(Items, result.ToArray());
+	}
+
+	[TestMethod]
 	public async Task SerializeAsync_WritesYamlSequence()
 	{
 		using var stream = new MemoryStream();

@@ -85,8 +85,6 @@ internal static class YamlEncoding
 
 	private static readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false);
 
-	private static ReadOnlySpan<byte> Preamble => [0xEF, 0xBB, 0xBF];
-
 	public static void Serialize(object? value, Type type, IBufferWriter<byte> buffer, YamlSerializerOptions options)
 	{
 		using var _ = ArrayBufferWriterPool<char>.GetPooledObject(out var chars);
@@ -101,22 +99,9 @@ internal static class YamlEncoding
 		await stream.WriteAsync(bytes.WrittenMemory, cancellationToken);
 	}
 
-	public static string GetString(ReadOnlySpan<byte> buffer) => Utf8.GetString(buffer.StartsWith(Preamble) ? buffer[Preamble.Length..] : buffer);
+	public static string GetString(ReadOnlySpan<byte> buffer) => Utf8.GetString(Utf8Bom.Skip(buffer));
 
-	public static string GetString(ReadOnlySequence<byte> buffer)
-	{
-		if (buffer.Length >= Preamble.Length)
-		{
-			Span<byte> prefix = stackalloc byte[3];
-			buffer.Slice(0, prefix.Length).CopyTo(prefix);
-			if (prefix.SequenceEqual(Preamble))
-			{
-				buffer = buffer.Slice(Preamble.Length);
-			}
-		}
-
-		return Utf8.GetString(buffer);
-	}
+	public static string GetString(ReadOnlySequence<byte> buffer) => Utf8.GetString(Utf8Bom.Skip(buffer));
 
 	public static async Task<string> ReadToEndAsync(Stream stream, CancellationToken cancellationToken)
 	{

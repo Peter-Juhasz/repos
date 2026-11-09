@@ -2,14 +2,12 @@
 using PeterJuhasz.Repositories.Caching;
 using PeterJuhasz.Repositories.Serialization;
 using PeterJuhasz.Repositories.Serialization.Json;
-using PeterJuhasz.Repositories.Serialization.Separated;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using PeterJuhasz.Text.Separated;
 
 namespace PeterJuhasz.Repositories.Blobs;
 
@@ -257,13 +255,6 @@ public static partial class Extensions
 
 		public ICollectionRepository<T> AsStreamingJsonCollectionRepository<T>(JsonSerializerContext context, IEqualityComparer<T>? comparer = null) =>
 			blob.AsStreamingCollectionRepository<T>(new JsonTypeInfoJsonCollectionSerializer<T>(context), comparer);
-
-
-		public ICollectionRepository<T> AsCsvCollectionRepository<T>(IEqualityComparer<T>? comparer = null) =>
-			blob.AsStreamingCollectionRepository<T>(new SeparatedValuesSerializer<T>(SeparatedValuesReaderOptions.Csv, SeparatedValuesWriterOptions.Csv), comparer);
-
-		public ICollectionRepository<T> AsTsvCollectionRepository<T>(IEqualityComparer<T>? comparer = null) =>
-			blob.AsStreamingCollectionRepository<T>(new SeparatedValuesSerializer<T>(SeparatedValuesReaderOptions.Tsv, SeparatedValuesWriterOptions.Tsv), comparer);
 	}
 
 	extension<T>(ICollectionRepository<T> repository)

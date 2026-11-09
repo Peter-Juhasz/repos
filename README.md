@@ -297,7 +297,7 @@ var collection = blob.AsJsonCollectionRepository<Item>(AppJsonSerializerContext.
 
 ### CSV, TSV
 
-Collections can be stored as separated values:
+Collections can be stored as separated values, using the `PeterJuhasz.Repositories.Separated` package:
 
 ```cs
 var csv = blob.AsCsvCollectionRepository<Item>();

@@ -69,6 +69,10 @@ jobs:
       working-directory: src/PeterJuhasz.Repositories.FileSystem
       run: dotnet pack --configuration Release --version-suffix "preview.${{ github.run_number }}" -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
 
+    - name: Pack Separated
+      working-directory: src/PeterJuhasz.Repositories.Separated
+      run: dotnet pack --configuration Release --version-suffix "preview.${{ github.run_number }}" -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+
     - name: Pack Yaml
       working-directory: src/PeterJuhasz.Repositories.Yaml
       run: dotnet pack --configuration Release --version-suffix "preview.${{ github.run_number }}" -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg

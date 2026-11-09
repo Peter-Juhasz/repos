@@ -19,8 +19,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="PeterJuhasz.Extensions" Version="2.*-*" />
-		<PackageReference Include="PeterJuhasz.Text.Separated" Version="1.*-*" />
-	</ItemGroup>
+		<PackageReference Include="PeterJuhasz.Extensions" Version="2.*-*" />	</ItemGroup>
 
 </Project>

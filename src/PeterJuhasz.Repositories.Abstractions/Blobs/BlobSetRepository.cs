@@ -1,13 +1,11 @@
 ﻿using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Serialization;
 using PeterJuhasz.Repositories.Serialization.Json;
-using PeterJuhasz.Repositories.Serialization.Separated;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using PeterJuhasz.Text.Separated;
 
 namespace PeterJuhasz.Repositories.Blobs;
 
@@ -155,12 +153,5 @@ public static partial class Extensions
 
 		public ISetRepository<T> AsJsonSetRepository<T>(JsonSerializerContext context, IEqualityComparer<T>? comparer = null) =>
 			blob.AsSetRepository<T>(new JsonTypeInfoJsonCollectionSerializer<T>(context), comparer);
-
-
-		public ISetRepository<T> AsCsvSetRepository<T>(IEqualityComparer<T>? comparer = null) =>
-			blob.AsSetRepository<T>(new SeparatedValuesSerializer<T>(SeparatedValuesReaderOptions.Csv, SeparatedValuesWriterOptions.Csv), comparer);
-
-		public ISetRepository<T> AsTsvSetRepository<T>(IEqualityComparer<T>? comparer = null) =>
-			blob.AsSetRepository<T>(new SeparatedValuesSerializer<T>(SeparatedValuesReaderOptions.Tsv, SeparatedValuesWriterOptions.Tsv), comparer);
 	}
 }

@@ -1,8 +1,10 @@
 ﻿using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
 namespace PeterJuhasz.Repositories.Serialization;
 
+[SuppressMessage("Naming", "CA1720:Identifier contains type name", Justification = "Mirrors the isUnsigned semantics of IBinaryInteger<T>.ReadBigEndian; part of the public API.")]
 public sealed class BigEndianBinaryIntegerSerializer<T>(bool unsigned) : ISerializer<T> where T : struct, IBinaryInteger<T>
 {
 	public static readonly ISerializer<int> Int32Serializer = new BigEndianBinaryIntegerSerializer<int>(unsigned: false);

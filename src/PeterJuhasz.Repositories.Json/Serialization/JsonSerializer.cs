@@ -48,29 +48,29 @@ public sealed class JsonSerializerOptionsJsonCollectionSerializer<T>(JsonSeriali
 
 	public string MediaType { get; } = "application/json";
 
-	public void Serialize(IReadOnlyCollection<T> value, IBufferWriter<byte> buffer)
+	public void Serialize(IReadOnlyCollection<T> items, IBufferWriter<byte> buffer)
 	{
 		using var _ = Utf8JsonWriterPool.GetPooledObject(out var writer);
 		writer.Reset(buffer);
-		JsonSerializer.Serialize(writer, value, jsonSerializerOptions);
+		JsonSerializer.Serialize(writer, items, jsonSerializerOptions);
 	}
 
-	public bool Deserialize(ReadOnlySpan<byte> buffer, out IReadOnlyCollection<T> value)
+	public bool Deserialize(ReadOnlySpan<byte> buffer, out IReadOnlyCollection<T> items)
 	{
 		buffer = Utf8Bom.Skip(buffer);
 
-		value = JsonSerializer.Deserialize<IReadOnlyCollection<T>>(buffer, jsonSerializerOptions)!;
+		items = JsonSerializer.Deserialize<IReadOnlyCollection<T>>(buffer, jsonSerializerOptions)!;
 		return true;
 	}
 
-	public bool Deserialize(ReadOnlySequence<byte> buffer, out IReadOnlyCollection<T> value)
+	public bool Deserialize(ReadOnlySequence<byte> buffer, out IReadOnlyCollection<T> items)
 	{
 		var reader = new Utf8JsonReader(Utf8Bom.Skip(buffer));
-		value = JsonSerializer.Deserialize<IReadOnlyCollection<T>>(ref reader, jsonSerializerOptions)!;
+		items = JsonSerializer.Deserialize<IReadOnlyCollection<T>>(ref reader, jsonSerializerOptions)!;
 		return true;
 	}
 
-	public Task SerializeAsync(IReadOnlyCollection<T> value, Stream stream, CancellationToken cancellationToken) => JsonSerializer.SerializeAsync(stream, value, jsonSerializerOptions, cancellationToken);
+	public Task SerializeAsync(IReadOnlyCollection<T> items, Stream stream, CancellationToken cancellationToken) => JsonSerializer.SerializeAsync(stream, items, jsonSerializerOptions, cancellationToken);
 
 	public async Task<IReadOnlyCollection<T>> DeserializeAsync(Stream stream, CancellationToken cancellationToken)
 	{
@@ -145,31 +145,31 @@ public sealed class JsonTypeInfoJsonCollectionSerializer<T>(
 
 	public string MediaType { get; } = "application/json";
 
-	public void Serialize(IReadOnlyCollection<T> value, IBufferWriter<byte> buffer)
+	public void Serialize(IReadOnlyCollection<T> items, IBufferWriter<byte> buffer)
 	{
 		using var _ = Utf8JsonWriterPool.GetPooledObject(out var writer);
 		writer.Reset(buffer);
-		JsonSerializer.Serialize(writer, value, collectionJsonTypeInfo);
+		JsonSerializer.Serialize(writer, items, collectionJsonTypeInfo);
 	}
 
-	public bool Deserialize(ReadOnlySpan<byte> buffer, out IReadOnlyCollection<T> value)
+	public bool Deserialize(ReadOnlySpan<byte> buffer, out IReadOnlyCollection<T> items)
 	{
 		buffer = Utf8Bom.Skip(buffer);
 
-		value = JsonSerializer.Deserialize(buffer, collectionJsonTypeInfo)!;
+		items = JsonSerializer.Deserialize(buffer, collectionJsonTypeInfo)!;
 		return true;
 	}
 
-	public bool Deserialize(ReadOnlySequence<byte> buffer, out IReadOnlyCollection<T> value)
+	public bool Deserialize(ReadOnlySequence<byte> buffer, out IReadOnlyCollection<T> items)
 	{
 		var reader = new Utf8JsonReader(Utf8Bom.Skip(buffer));
-		value = JsonSerializer.Deserialize<IReadOnlyCollection<T>>(ref reader, collectionJsonTypeInfo)!;
+		items = JsonSerializer.Deserialize<IReadOnlyCollection<T>>(ref reader, collectionJsonTypeInfo)!;
 		return true;
 	}
 
-	public async Task SerializeAsync(IReadOnlyCollection<T> value, Stream stream, CancellationToken cancellationToken)
+	public async Task SerializeAsync(IReadOnlyCollection<T> items, Stream stream, CancellationToken cancellationToken)
 	{
-		await JsonSerializer.SerializeAsync(stream, value, collectionJsonTypeInfo, cancellationToken);
+		await JsonSerializer.SerializeAsync(stream, items, collectionJsonTypeInfo, cancellationToken);
 	}
 
 	public async Task<IReadOnlyCollection<T>> DeserializeAsync(Stream stream, CancellationToken cancellationToken)

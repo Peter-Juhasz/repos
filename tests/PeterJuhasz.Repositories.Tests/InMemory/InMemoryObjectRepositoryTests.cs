@@ -1,6 +1,7 @@
 using PeterJuhasz.Repositories.Abstractions;
 using PeterJuhasz.Repositories.Blobs;
 using PeterJuhasz.Repositories.InMemory;
+using System.Globalization;
 
 namespace PeterJuhasz.Repositories.Tests.InMemory;
 
@@ -80,7 +81,7 @@ public class InMemoryObjectRepositoryTests(TestContext testContext)
 		{
 			try
 			{
-				await repository.CreateAsync(new Item(i.ToString()), CT);
+				await repository.CreateAsync(new Item(i.ToString(CultureInfo.InvariantCulture)), CT);
 				return true;
 			}
 			catch (ConflictException)

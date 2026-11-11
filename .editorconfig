@@ -42,6 +42,9 @@ dotnet_diagnostic.CA1063.severity = none
 
 dotnet_diagnostic.CS9107.severity = none
 
+# CA1711: Identifiers should not have incorrect suffix (storage queues are named after the domain concept)
+dotnet_diagnostic.CA1711.severity = none
+
 
 # The given expression is never of the provided type
 dotnet_diagnostic.CS0184.severity = error
@@ -51,3 +54,11 @@ dotnet_diagnostic.CS0184.severity = error
 [*.{css,scss,sass,less}]
 
 [*.{js,ts,jsx,tsx}]
+
+[tests/**.cs]
+# Test method names are descriptive sentences with underscores.
+dotnet_diagnostic.CA1707.severity = none
+# Test data is declared inline.
+dotnet_diagnostic.CA1861.severity = none
+# Tests deliberately target the interfaces, not the concrete types.
+dotnet_diagnostic.CA1859.severity = none

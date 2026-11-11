@@ -1,4 +1,5 @@
 ﻿using Azure;
+using System.Diagnostics.CodeAnalysis;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Microsoft.Extensions.ObjectPool;
@@ -44,8 +45,11 @@ internal sealed class BufferingStagedBlockWriterStream(
 		{
 			throw new NotSupportedException("The blob is committed on dispose, use DisposeAsync instead.");
 		}
+
+		base.Dispose(disposing);
 	}
 
+	[SuppressMessage("Usage", "CA2215:Dispose methods should call base class dispose", Justification = "Base DisposeAsync would call the synchronous Dispose, which is not supported.")]
 	public override async ValueTask DisposeAsync()
 	{
 		if (_disposed)

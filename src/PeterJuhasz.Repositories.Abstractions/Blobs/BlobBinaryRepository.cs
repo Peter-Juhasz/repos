@@ -33,19 +33,19 @@ public class BlobBinaryRepository(IBlob blob) : IBinaryRepository
 		return info?.ConcurrencyToken;
 	}
 
-	public Task StoreAsync(BinaryData value, string? etag, CancellationToken cancellationToken) =>
-		blob.WriteAsync(value.ToMemory(), etag, new(MediaType: value.MediaType), cancellationToken);
+	public Task StoreAsync(BinaryData value, string? concurrencyToken, CancellationToken cancellationToken) =>
+		blob.WriteAsync(value.ToMemory(), concurrencyToken, new(MediaType: value.MediaType), cancellationToken);
 
-	public async Task StoreAsync(Stream value, string? mediaType, string? etag, CancellationToken cancellationToken)
+	public async Task StoreAsync(Stream stream, string? mediaType, string? concurrencyToken, CancellationToken cancellationToken)
 	{
-		await using var stream = await blob.OpenWriteAsync(etag, new(MediaType: mediaType), cancellationToken);
-		await value.CopyToAsync(stream, cancellationToken);
-		await stream.FlushAsync(cancellationToken);
+		await using var writeStream = await blob.OpenWriteAsync(concurrencyToken, new(MediaType: mediaType), cancellationToken);
+		await stream.CopyToAsync(writeStream, cancellationToken);
+		await writeStream.FlushAsync(cancellationToken);
 	}
 
 	public Task DeleteIfExistsAsync(CancellationToken cancellationToken) => blob.DeleteIfExistsAsync(cancellationToken);
 
-	public Task DeleteAsync(string etag, CancellationToken cancellationToken) => blob.DeleteAsync(etag, cancellationToken);
+	public Task DeleteAsync(string concurrencyToken, CancellationToken cancellationToken) => blob.DeleteAsync(concurrencyToken, cancellationToken);
 }
 
 public static partial class Extensions

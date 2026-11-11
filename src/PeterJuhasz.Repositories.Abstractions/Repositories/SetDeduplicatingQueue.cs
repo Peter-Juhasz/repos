@@ -32,9 +32,9 @@ public sealed class SetDeduplicatingQueue<T>(
 		}
 	}
 
-	public async ValueTask SendMessagesAsync(IReadOnlyList<T> value, IStorageQueue<T>.SendOptions<T> options, CancellationToken cancellationToken)
+	public async ValueTask SendMessagesAsync(IReadOnlyList<T> values, IStorageQueue<T>.SendOptions<T> options, CancellationToken cancellationToken)
 	{
-		foreach (var item in value)
+		foreach (var item in values)
 		{
 			await SendMessageAsync(item, options, cancellationToken);
 		}

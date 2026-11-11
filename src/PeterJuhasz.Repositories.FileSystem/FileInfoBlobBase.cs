@@ -1,10 +1,12 @@
 ﻿using PeterJuhasz.Repositories.Blobs;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace PeterJuhasz.Repositories.FileSystem;
 
 public abstract class FileInfoBlobBase(FileInfo file)
 {
+	[SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "Part of the public API for derived types.")]
 	protected readonly string _path = file.FullName;
 
 	public FileInfo File => file;

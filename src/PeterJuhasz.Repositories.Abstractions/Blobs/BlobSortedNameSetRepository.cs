@@ -22,7 +22,7 @@ public class BlobSortedNameSetRepository<T>(
 		var sortKey = sortKeySelector(value);
 		if (sortKey.Contains(separator))
 		{
-			throw new ArgumentException("Sort key cannot contain the separator character.", nameof(sortKeySelector));
+			throw new ArgumentException("Sort key cannot contain the separator character.", nameof(value));
 		}
 
 		var byteCount = encoding.GetByteCount(sortKey) + 1;

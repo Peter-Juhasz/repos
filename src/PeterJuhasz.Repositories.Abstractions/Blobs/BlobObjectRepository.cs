@@ -19,7 +19,7 @@ public class BlobObjectRepository<T>(
 
 	public Task<bool> ExistsAsync(CancellationToken cancellationToken) => blob.ExistsAsync(cancellationToken);
 
-	public Task DeleteWithVersionAsync(string etag, CancellationToken cancellationToken) => blob.DeleteAsync(etag, cancellationToken);
+	public Task DeleteWithVersionAsync(string concurrencyToken, CancellationToken cancellationToken) => blob.DeleteAsync(concurrencyToken, cancellationToken);
 
 	public async ValueTask<Versioned<T>?> GetOrDefaultWithVersionAsync(CancellationToken cancellationToken)
 	{
@@ -56,15 +56,15 @@ public class BlobObjectRepository<T>(
 		return new(result.Value, result.Info.LastModified, result.Info.ConcurrencyToken, result.Info.ContentEncoding);
 	}
 
-	public async Task<Versioned<T>> StoreAsync(T value, string? etag, CancellationToken cancellationToken)
+	public async Task<Versioned<T>> StoreAsync(T value, string? concurrencyToken, CancellationToken cancellationToken)
 	{
 		using var _ = ArrayBufferWriterPool<byte>.GetPooledObject(out var writer);
 		serializer.Serialize(value, writer);
-		var concurrencyToken = await blob.WriteAsync(writer.WrittenMemory, etag, new(MediaType: serializer.MediaType), cancellationToken);
-		return new(value, concurrencyToken);
+		var newConcurrencyToken = await blob.WriteAsync(writer.WrittenMemory, concurrencyToken, new(MediaType: serializer.MediaType), cancellationToken);
+		return new(value, newConcurrencyToken);
 	}
 
-	public Task<T?> ApplyAsync(Func<T?, CancellationToken, ValueTask<T?>> transform, CancellationToken cancellationToken)
+	public Task<T?> ApplyAsync(Func<T?, CancellationToken, ValueTask<T?>> factory, CancellationToken cancellationToken)
 	{
 		var effectiveComparer = comparer ?? EqualityComparer<T>.Default;
 
@@ -78,7 +78,7 @@ public class BlobObjectRepository<T>(
 				oldObject = serializer.Deserialize(result.Value.ToMemory().Span);
 			}
 
-			var newObject = await transform(oldObject, ct);
+			var newObject = await factory(oldObject, ct);
 			if (newObject == null)
 			{
 				if (result != null)

@@ -164,11 +164,11 @@ public class CachingObjectRepository<T>(
 
 	// writes invalidate even when they fail, e.g. a conflict means the cached version is stale
 
-	public async Task<Versioned<T>> StoreAsync(T value, string? etag, CancellationToken cancellationToken)
+	public async Task<Versioned<T>> StoreAsync(T value, string? concurrencyToken, CancellationToken cancellationToken)
 	{
 		try
 		{
-			return await inner.StoreAsync(value, etag, cancellationToken);
+			return await inner.StoreAsync(value, concurrencyToken, cancellationToken);
 		}
 		finally
 		{
@@ -201,11 +201,11 @@ public class CachingObjectRepository<T>(
 		}
 	}
 
-	public async Task DeleteWithVersionAsync(string etag, CancellationToken cancellationToken)
+	public async Task DeleteWithVersionAsync(string concurrencyToken, CancellationToken cancellationToken)
 	{
 		try
 		{
-			await inner.DeleteWithVersionAsync(etag, cancellationToken);
+			await inner.DeleteWithVersionAsync(concurrencyToken, cancellationToken);
 		}
 		finally
 		{
@@ -421,11 +421,11 @@ public class GlobalCachingBlobSingleObjectRepository<T>(
 
 	// writes invalidate even when they fail, e.g. a conflict means the cached version is stale
 
-	public async Task<Versioned<T>> StoreAsync(T value, string? etag, CancellationToken cancellationToken)
+	public async Task<Versioned<T>> StoreAsync(T value, string? concurrencyToken, CancellationToken cancellationToken)
 	{
 		try
 		{
-			return await inner.StoreAsync(value, etag, cancellationToken);
+			return await inner.StoreAsync(value, concurrencyToken, cancellationToken);
 		}
 		finally
 		{
@@ -458,11 +458,11 @@ public class GlobalCachingBlobSingleObjectRepository<T>(
 		}
 	}
 
-	public async Task DeleteWithVersionAsync(string etag, CancellationToken cancellationToken)
+	public async Task DeleteWithVersionAsync(string concurrencyToken, CancellationToken cancellationToken)
 	{
 		try
 		{
-			await inner.DeleteWithVersionAsync(etag, cancellationToken);
+			await inner.DeleteWithVersionAsync(concurrencyToken, cancellationToken);
 		}
 		finally
 		{

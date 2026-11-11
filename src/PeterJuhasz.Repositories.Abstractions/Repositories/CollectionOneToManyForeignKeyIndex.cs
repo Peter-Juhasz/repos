@@ -2,6 +2,7 @@
 using PeterJuhasz.Repositories.Blobs;
 using PeterJuhasz.Repositories.Serialization;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PeterJuhasz.Repositories.Caching;
 
@@ -12,6 +13,7 @@ public sealed class PartitionCollectionOneToManyForeignKeyIndex(
 	string? extension = null
 ) : IOneToManyForeignKeyIndex
 {
+	[SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "Extension methods are defined on the interface.")]
 	private ICollectionRepository<string> GetRepository(string principalKey) => new BufferedBlobCollectionRepository<string>(
 		extension != null ? partition.GetBlob(principalKey, extension) : partition.GetBlob(principalKey),
 		serializer,

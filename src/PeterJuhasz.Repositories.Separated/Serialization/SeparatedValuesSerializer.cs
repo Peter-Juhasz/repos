@@ -11,27 +11,27 @@ public sealed class SeparatedValuesSerializer<T>(SeparatedValuesReaderOptions re
 
 	private static readonly StreamPipeWriterOptions LeaveOpen = new(leaveOpen: true);
 
-	public void Serialize(IReadOnlyCollection<T> value, IBufferWriter<byte> buffer)
+	public void Serialize(IReadOnlyCollection<T> items, IBufferWriter<byte> buffer)
 	{
 		throw new NotImplementedException();
 	}
 
-	public bool Deserialize(ReadOnlySpan<byte> buffer, out IReadOnlyCollection<T> value)
+	public bool Deserialize(ReadOnlySpan<byte> buffer, out IReadOnlyCollection<T> items)
 	{
 		throw new NotImplementedException();
 	}
 
-	public bool Deserialize(ReadOnlySequence<byte> buffer, out IReadOnlyCollection<T> value)
+	public bool Deserialize(ReadOnlySequence<byte> buffer, out IReadOnlyCollection<T> items)
 	{
 		throw new NotImplementedException();
 	}
 
-	public async Task SerializeAsync(IReadOnlyCollection<T> value, Stream stream, CancellationToken cancellationToken)
+	public async Task SerializeAsync(IReadOnlyCollection<T> items, Stream stream, CancellationToken cancellationToken)
 	{
 		var pipeWriter = PipeWriter.Create(stream, LeaveOpen);
 		var writer = new SeparatedValuesWriter(pipeWriter, writerOptions);
 		writer.WriteHeader<T>();
-		foreach (var item in value)
+		foreach (var item in items)
 		{
 			writer.WriteValues(item);
 		}

@@ -21,24 +21,24 @@ public sealed class InMemoryObjectRepository<T> : IObjectRepository<T>
 		}
 	}
 
-	public Task DeleteWithVersionAsync(string etag, CancellationToken cancellationToken)
+	public Task DeleteWithVersionAsync(string concurrencyToken, CancellationToken cancellationToken)
 	{
 		lock (_lock)
 		{
 			if (_stored is not { } current)
 			{
 				// a specific version of a missing object is a conflict, so optimistic retries can recover
-				if (etag != IBlob.AnyConcurrencyToken)
+				if (concurrencyToken != IBlob.AnyConcurrencyToken)
 				{
-					throw new ConflictException(etag);
+					throw new ConflictException(concurrencyToken);
 				}
 
 				throw new NotFoundException("Object not found.");
 			}
 
-			if (etag != IBlob.AnyConcurrencyToken && current.ETag != etag)
+			if (concurrencyToken != IBlob.AnyConcurrencyToken && current.ETag != concurrencyToken)
 			{
-				throw new ConflictException(etag);
+				throw new ConflictException(concurrencyToken);
 			}
 
 			_stored = null;
@@ -74,20 +74,20 @@ public sealed class InMemoryObjectRepository<T> : IObjectRepository<T>
 		throw new NotImplementedException();
 	}
 
-	public Task<Versioned<T>> StoreAsync(T value, string? etag, CancellationToken cancellationToken)
+	public Task<Versioned<T>> StoreAsync(T value, string? concurrencyToken, CancellationToken cancellationToken)
 	{
 		lock (_lock)
 		{
-			var isMet = etag switch
+			var isMet = concurrencyToken switch
 			{
 				null => _stored is null,
 				IBlob.AnyOrNoneConcurrencyToken => true,
 				IBlob.AnyConcurrencyToken => _stored is not null,
-				_ => _stored?.ETag == etag,
+				_ => _stored?.ETag == concurrencyToken,
 			};
 			if (!isMet)
 			{
-				throw new ConflictException(etag ?? "Object already exists.");
+				throw new ConflictException(concurrencyToken ?? "Object already exists.");
 			}
 
 			var result = new Versioned<T>(value, Guid.NewGuid().ToString());

@@ -4,7 +4,7 @@ public interface IStorageQueue<T>
 {
 	ValueTask SendMessageAsync(T value, SendOptions<T> options, CancellationToken cancellationToken);
 
-	ValueTask SendMessagesAsync(IReadOnlyList<T> value, SendOptions<T> options, CancellationToken cancellationToken);
+	ValueTask SendMessagesAsync(IReadOnlyList<T> values, SendOptions<T> options, CancellationToken cancellationToken);
 
 	ValueTask<long> GetCountAsync(CancellationToken cancellationToken);
 
@@ -21,7 +21,7 @@ public interface ICancellableStorageQueue<T, TReceipt> : IStorageQueue<T>
 {
 	ValueTask<TReceipt> ScheduleMessageAsync(T value, SendOptions<T> options, CancellationToken cancellationToken);
 
-	ValueTask<IEnumerable<TReceipt>> ScheduleMessagesAsync(IReadOnlyList<T> value, SendOptions<T> options, CancellationToken cancellationToken);
+	ValueTask<IEnumerable<TReceipt>> ScheduleMessagesAsync(IReadOnlyList<T> values, SendOptions<T> options, CancellationToken cancellationToken);
 
 	ValueTask CancelMessageAsync(TReceipt receipt, CancellationToken cancellationToken);
 	ValueTask CancelMessagesAsync(IReadOnlyList<TReceipt> receipts, CancellationToken cancellationToken);

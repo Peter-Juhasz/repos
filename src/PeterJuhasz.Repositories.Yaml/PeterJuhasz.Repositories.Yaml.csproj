@@ -13,7 +13,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="PeterJuhasz.Text.Yaml" Version="1.*-*" />
+		<PackageReference Include="PeterJuhasz.Text.Yaml" Version="1.1.*-*" />
 	</ItemGroup>
 
 </Project>
